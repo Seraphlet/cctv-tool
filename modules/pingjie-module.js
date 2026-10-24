@@ -701,7 +701,7 @@
             const preview = this.container.querySelector('#pjPreview');
             if (!preview) return;
             const text = preview.innerText;
-            if (!text.trim()) { alert('没有内容可复制'); return; }
+            if (!text.trim()) { message('没有内容可复制', 'warning'); return; }
             this.App.api.copyText(text);
         },
 
@@ -735,7 +735,7 @@
             const label = this.container.querySelector('#pjEditLabel').value.trim();
             const content = this.container.querySelector('#pjEditContent').value.trim();
 
-            if (!label || !content) { alert('标签和内容不能为空'); return; }
+            if (!label || !content) { message('标签和内容不能为空', 'warning'); return; }
 
             if (this.currentEditId) {
                 const p = this.promptStore.find(x => x.id === this.currentEditId);

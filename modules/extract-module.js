@@ -562,7 +562,7 @@ S线	腾讯青年发展委员会	腾讯青年发展委员会、腾讯+英才计�
                 const mode = modeSelect.value;
                 const input = inputArea.value;
                 if (!input.trim()) {
-                    alert('请输入内容');
+                    message('请输入内容', 'warning');
                     return;
                 }
                 let result = '';
@@ -604,7 +604,7 @@ S线	腾讯青年发展委员会	腾讯青年发展委员会、腾讯+英才计�
                     const links = lines.map(l => l.trim());
                     const validCount = links.filter(l => l && l.toLowerCase().startsWith('http')).length;
                     if (validCount === 0) {
-                        alert('未检测到有效链接（需以 http/https 开头）');
+                        message('未检测到有效链接（需以 http/https 开头）', 'warning');
                         return;
                     }
                     this._busy = true;
@@ -652,15 +652,15 @@ S线	腾讯青年发展委员会	腾讯青年发展委员会、腾讯+英才计�
 
             copyBtn.addEventListener('click', () => {
                 if (!outputArea.value || outputArea.value === '解析失败，请检查文本格式' || outputArea.value === '请输入至少一行监测词' || outputArea.value === '未匹配到任何结果') {
-                    alert('没有可复制的内容，请先解析');
+                    message('没有可复制的内容，请先解析', 'warning');
                     return;
                 }
                 navigator.clipboard.writeText(outputArea.value).then(() => {
-                    alert('✅ 已复制到剪贴板（Tab分隔）');
+                    message('✅ 已复制到剪贴板（Tab分隔）', 'success');
                 }).catch(() => {
                     outputArea.select();
                     document.execCommand('copy');
-                    alert('✅ 已复制到剪贴板');
+                    message('✅ 已复制到剪贴板', 'success');
                 });
             });
 

@@ -306,7 +306,7 @@
                     const cat = tag.dataset.cat;
                     if (!cat) return;
                     if (cat === '长期') {
-                        alert('“长期”是内置分类，不可删除');
+                        message('“长期”是内置分类，不可删除', 'warning');
                         return;
                     }
                     if (confirm('删除保存分类 "' + cat + '"？')) {
@@ -373,7 +373,7 @@
                     const cat = tag.dataset.cat;
                     if (!cat) return;
                     if (cat === '长期') {
-                        alert('“长期”是内置分类，不可删除');
+                        message('“长期”是内置分类，不可删除', 'warning');
                         return;
                     }
                     if (confirm('删除筛选分类 "' + cat + '"？')) {
@@ -478,7 +478,7 @@
                 this._searchLocal();
             } catch (e) {
                 console.error('删除失败:', e);
-                alert('删除失败');
+                message('删除失败', 'error');
             }
         },
 
@@ -489,7 +489,7 @@
             const userInput = prompt(`请输入"确定"二字确认清空${label}：`);
             if (userInput === null) return;
             if (userInput.trim() !== '确定') {
-                alert('输入错误，操作已取消');
+                message('输入错误，操作已取消', 'error');
                 return;
             }
             if (type === 'local') this._clearLocal();
@@ -508,8 +508,8 @@
         async _clearServer() {
             try {
                 await fetch(`${this.apiBase}/delete_all`, { method: 'POST' });
-                alert('服务器数据已清空');
-            } catch (e) { alert('清空服务器失败'); }
+                message('服务器数据已清空', 'success');
+            } catch (e) { message('清空服务器失败', 'error'); }
         },
 
         // ========== 搜索（或逻辑） ==========
@@ -639,7 +639,7 @@
             const input = document.getElementById('newsInput');
             const statusEl = document.getElementById('saveStatus');
             const rawText = input.value;
-            if (!rawText.trim()) { alert('请输入新闻内容'); return; }
+            if (!rawText.trim()) { message('请输入新闻内容', 'warning'); return; }
             statusEl.textContent = '...'; statusEl.style.color = '#999';
 
             try {
@@ -831,7 +831,7 @@
             overlay.querySelector('#closeDetailBtn2').addEventListener('click', close);
             overlay.addEventListener('click', e => { if(e.target===overlay) close(); });
             overlay.querySelector('#copyDetailBtn').addEventListener('click', () => {
-                navigator.clipboard.writeText(content).then(() => alert('已复制')).catch(() => alert('复制失败'));
+                navigator.clipboard.writeText(content).then(() => message('已复制', 'success')).catch(() => message('复制失败', 'error'));
             });
         }
     };

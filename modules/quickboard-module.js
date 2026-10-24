@@ -196,7 +196,7 @@
 
         // 申请系统通知权限（用户手势触发）
         requestNotif() {
-            if (!('Notification' in window)) { alert('当前浏览器不支持系统通知'); return; }
+            if (!('Notification' in window)) { this._showToast('⚠️ 提示', '当前浏览器不支持系统通知'); return; }
             try {
                 Notification.requestPermission().then(() => this._updateNotifBtn());
             } catch (e) {
@@ -608,7 +608,7 @@
                     const raw = prompt('请粘贴一行数据（用 Tab 键或逗号分隔）：');
                     if (!raw) return;
                     const parts = raw.split(/\t|,/).map(s => s.trim());
-                    if (parts.length === 0) { alert('未识别到数据'); return; }
+                    if (parts.length === 0) { this._showToast('⚠️ 提示', '未识别到数据'); return; }
                     while (parts.length > table.columns.length) {
                         table.columns.push(`字段${table.columns.length + 1}`);
                         table.rows.forEach(row => row.push(''));
@@ -673,7 +673,7 @@
                     const raw = prompt('请粘贴一行日期（例如：7月1日\t7月2日\t...），将替换当前表头（保留姓名列）');
                     if (!raw) return;
                     const parts = raw.split(/\t|,/).map(s => s.trim()).filter(Boolean);
-                    if (parts.length === 0) { alert('未识别到日期'); return; }
+                    if (parts.length === 0) { this._showToast('⚠️ 提示', '未识别到日期'); return; }
                     if (!parts.every(p => this._isDateString(p))) {
                         if (!confirm('部分列名看起来不像日期格式（如"7月1日"），是否强制替换？')) return;
                     }
@@ -691,7 +691,7 @@
                     const raw = prompt('请粘贴一行人员班次（例如：杨展鹏\t早班1\t早班1\t...）');
                     if (!raw) return;
                     const parts = raw.split(/\t|,/).map(s => s.trim());
-                    if (parts.length === 0) { alert('未识别到数据'); return; }
+                    if (parts.length === 0) { this._showToast('⚠️ 提示', '未识别到数据'); return; }
                     if (parts.length > table.columns.length) {
                         const extraCount = parts.length - table.columns.length;
                         for (let i = 0; i < extraCount; i++) {
@@ -716,7 +716,7 @@
                         const today = this._getTodayString();
                         const colIdx = table.columns.indexOf(today);
                         if (colIdx === -1) {
-                            alert(`未找到今日日期 "${today}" 的列，请确保表头包含该日期。`);
+                            this._showToast('⚠️ 提示', `未找到今日日期 "${today}" 的列，请确保表头包含该日期。`);
                             return;
                         }
 
@@ -793,7 +793,7 @@
                         });
 
                         if (lines.length === 0) {
-                            alert('今日无任何班次数据');
+                            this._showToast('⚠️ 提示', '今日无任何班次数据');
                             return;
                         }
 
@@ -802,10 +802,10 @@
                         const text = lines.join('\n');
 
                         navigator.clipboard.writeText(text).then(() => {
-                            alert('✅ 已复制到剪贴板');
+                            this._showToast('✅ 成功', '已复制到剪贴板');
                         }).catch(() => {
-                            // 降级方案：弹窗显示并提示手动复制
-                            alert(`复制失败，请手动复制以下内容：\n\n${text}`);
+                            // 降级方案：提示手动复制（多行文本，用全局 message 保留换行）
+                            message(`复制失败，请手动复制以下内容：\n\n${text}`, 'error');
                         });
                     });
                 }

@@ -422,7 +422,7 @@
                 resident: this.f.resident.checked,
                 status: STATUS.PENDING,
             };
-            if (!payload.title) { alert('请填写事项标题'); return; }
+            if (!payload.title) { this._showToast('⚠️ 提示', '请填写事项标题'); return; }
             if (this.editingId != null) {
                 payload.id = this.editingId;
                 await this.db.put(payload);
@@ -477,7 +477,7 @@
 
             const applyNewDate = (newDateStr) => {
                 if (!/^\d{4}-\d{2}-\d{2}$/.test(newDateStr)) {
-                    alert('日期格式应为 YYYY-MM-DD');
+                    this._showToast('⚠️ 提示', '日期格式应为 YYYY-MM-DD');
                     return;
                 }
                 t.date = newDateStr;
@@ -510,7 +510,7 @@
         },
         async _clearCompleted() {
             const done = this.tasks.filter(t => t.status === STATUS.COMPLETED && !t.resident);
-            if (done.length === 0) { alert('没有可删除的已完成任务（常驻项不会被清空）'); return; }
+            if (done.length === 0) { this._showToast('⚠️ 提示', '没有可删除的已完成任务（常驻项不会被清空）'); return; }
             if (!confirm(`确定删除 ${done.length} 条已完成任务？`)) return;
             for (const t of done) await this.db.delete(t.id);
             this.tasks = this.tasks.filter(t => t.status !== STATUS.COMPLETED || t.resident);
@@ -576,7 +576,7 @@
             btn.textContent = p === 'granted' ? '🔔 已开启' : (p === 'denied' ? '🔕 被拒绝' : '🔔 通知');
         },
         async _requestNotif() {
-            if (!('Notification' in window)) { alert('当前浏览器不支持系统通知'); return; }
+            if (!('Notification' in window)) { this._showToast('⚠️ 提示', '当前浏览器不支持系统通知'); return; }
             try { const p = await Notification.requestPermission(); this._updateNotifUI(); } catch (_) {}
         },
 
@@ -592,8 +592,8 @@
         async _import(file) {
             const text = await file.text();
             let arr;
-            try { arr = JSON.parse(text); } catch (_) { alert('导入失败：文件不是合法 JSON'); return; }
-            if (!Array.isArray(arr)) { alert('导入失败：格式不正确'); return; }
+            try { arr = JSON.parse(text); } catch (_) { this._showToast('❌ 错误', '导入失败：文件不是合法 JSON'); return; }
+            if (!Array.isArray(arr)) { this._showToast('❌ 错误', '导入失败：格式不正确'); return; }
             for (const item of arr) {
                 if (!item || !item.title || !item.date || !item.time) continue;
                 const { id, ...rest } = item;
@@ -606,7 +606,7 @@
             }
             this.tasks = await this.db.getAll();
             this.render();
-            alert(`导入成功，共 ${arr.length} 条`);
+            this._showToast('✅ 成功', `导入成功，共 ${arr.length} 条`);
         },
     };
 

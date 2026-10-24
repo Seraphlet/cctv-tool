@@ -379,7 +379,7 @@
                 this.App.refreshCustomTemplates();
             }
             this._renderSavedTemplates();
-            alert(`模板 "${name}" 已保存！`);
+            message(`模板 "${name}" 已保存！`, 'success');
         }
     };
 

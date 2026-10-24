@@ -44,15 +44,15 @@
             return n.getFullYear() + String(n.getMonth()+1).padStart(2,'0') + String(n.getDate()).padStart(2,'0');
         },
         copyText(s) {
-            if (!s) { alert('没有内容可复制'); return; }
-            navigator.clipboard.writeText(this.stripHighlight(s)).then(() => alert('复制成功')).catch(() => {
+            if (!s) { message('没有内容可复制', 'warning'); return; }
+            navigator.clipboard.writeText(this.stripHighlight(s)).then(() => message('复制成功', 'success')).catch(() => {
                 const ta = document.createElement('textarea');
                 ta.value = this.stripHighlight(s);
                 document.body.appendChild(ta);
                 ta.select();
                 document.execCommand('copy');
                 document.body.removeChild(ta);
-                alert('复制成功');
+                message('复制成功', 'success');
             });
         },
         storageGet(k) {
@@ -66,6 +66,53 @@
             try { localStorage.removeItem(STORAGE_PREFIX + k); } catch(e) {}
         }
     };
+
+    // ========== 全局 Message 反馈（替代原生 alert：顶部居中浮层，非阻塞，自动消失） ==========
+    // 用法：message('复制成功', 'success')，type 支持 success / error / warning / info（缺省 info）
+    const MSG_BOX_ID = 'cmswrapMsgBox';
+    const MSG_STYLE_ID = 'cmswrapMsgStyle';
+    const MSG_TYPES = {
+        success: { icon: '✅', color: '#52c41a' },
+        error:   { icon: '❌', color: '#ff4d4f' },
+        warning: { icon: '⚠️', color: '#faad14' },
+        info:    { icon: 'ℹ️', color: '#1677ff' }
+    };
+    function message(text, type) {
+        try {
+            if (!document.getElementById(MSG_STYLE_ID)) {
+                const st = document.createElement('style');
+                st.id = MSG_STYLE_ID;
+                st.textContent = [
+                    '#' + MSG_BOX_ID + '{position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:2147483000;display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:none;}',
+                    '.cmswrap-msg{max-width:560px;background:#fff;border:1px solid #f0f0f0;border-left:4px solid #1677ff;border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.14);padding:10px 16px;font-size:14px;line-height:1.6;color:#1f2329;display:flex;align-items:flex-start;gap:8px;pointer-events:auto;word-break:break-word;white-space:pre-wrap;animation:cmswrap-msg-in .22s ease;}',
+                    '.cmswrap-msg.cmswrap-msg-out{animation:cmswrap-msg-out .22s ease forwards;}',
+                    '@keyframes cmswrap-msg-in{from{opacity:0;transform:translateY(-14px);}to{opacity:1;transform:translateY(0);}}',
+                    '@keyframes cmswrap-msg-out{to{opacity:0;transform:translateY(-14px);}}'
+                ].join('');
+                document.head.appendChild(st);
+            }
+            let box = document.getElementById(MSG_BOX_ID);
+            if (!box) {
+                box = document.createElement('div');
+                box.id = MSG_BOX_ID;
+                document.body.appendChild(box);
+            }
+            const conf = MSG_TYPES[type] || MSG_TYPES.info;
+            const el = document.createElement('div');
+            el.className = 'cmswrap-msg';
+            el.style.borderLeftColor = conf.color;
+            el.innerHTML = '<span>' + conf.icon + '</span><span>' +
+                API.escapeHtml(text == null ? '' : String(text)) + '</span>';
+            box.appendChild(el);
+            setTimeout(() => {
+                el.classList.add('cmswrap-msg-out');
+                setTimeout(() => el.remove(), 240);
+            }, 2600);
+        } catch (e) {
+            console.error('[message]', e);
+        }
+    }
+    window.message = message;
 
     // ========== 全局状态 ==========
     const state = {
@@ -688,8 +735,8 @@
                     const resp = await fetch(imgData.dataUrl);
                     const blob = await resp.blob();
                     await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
-                    alert('已复制图片到剪贴板');
-                } catch (err) { alert('复制失败，请重试'); }
+                    message('已复制图片到剪贴板', 'success');
+                } catch (err) { message('复制失败，请重试', 'error'); }
             });
             const escHandler = (ev) => { if (ev.key === 'Escape') { closePreview(); document.removeEventListener('keydown', escHandler); } };
             document.addEventListener('keydown', escHandler);

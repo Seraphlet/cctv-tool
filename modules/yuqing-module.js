@@ -728,7 +728,7 @@
                 if (trimmed.includes('提示】')) tipStart = i + 1;
                 if (trimmed.includes('补充】')) addStart = i + 1;
             }
-            if (tipStart === -1 && addStart === -1) { alert('未找到【提示】或【补充】标记'); return; }
+            if (tipStart === -1 && addStart === -1) { this._showToast('⚠️ 未找到【提示】或【补充】标记'); return; }
             const validLines = [];
             for (let i = 0; i < lines.length; i++) { if (lines[i].trim()) validLines.push({ index: i, text: lines[i].trim() }); }
             const parseLines = (startIdx, endIdx, section) => {
@@ -917,7 +917,7 @@
 
         _insertTitle(name, titleStr) {
             const activeEl = document.activeElement;
-            if (!activeEl || !activeEl.classList.contains('textarea-mod')) { alert('请先点击摘要或全文的文本框'); return; }
+            if (!activeEl || !activeEl.classList.contains('textarea-mod')) { this._showToast('⚠️ 请先点击摘要或全文的文本框'); return; }
             const formatted = titleStr ? `${name} ${titleStr}：` : `${name}：`;
             const ta = activeEl, start = ta.selectionStart, end = ta.selectionEnd, text = ta.value;
             ta.value = text.substring(0, start) + formatted + text.substring(end);
@@ -974,12 +974,12 @@
             this._globalEventsBound = true;
             const actions = [
                 ['toggleEditMode', () => { this.App.state.editMode = !this.App.state.editMode; const btn = document.getElementById('editBtn'); if (btn) { btn.innerText = this.App.state.editMode ? '✅ 退出编辑模式' : '🔧 开启编辑模式'; btn.classList.toggle('btn-success', this.App.state.editMode); btn.classList.toggle('btn-warning', !this.App.state.editMode); } this.render(); this.updatePreview(); }],
-                ['saveDefault', () => { if (!confirm('确定将当前排版设为默认模板？')) return; this.syncUIData(); this.App.api.storageSet('main_richang', this.nowTemp); this.App.api.storageSet('main_quantao', this.nowTemp); alert('已永久保存'); }],
-                ['resetConfig', () => { if (!confirm('确定恢复原始模板？（不会清除用户映射）')) return; this.App.api.storageRemove('main_richang'); this.App.api.storageRemove('main_quantao'); this.App.api.storageRemove('yuqing_presets'); this.presets = { channels: this._defaultPresets.channels.map(c => ({ ...c })), columns: this._defaultPresets.columns.slice() }; this._savePresets(); this._loadTemplate(); this.render(); this.updatePreview(); alert('已恢复模板，字段映射保留'); }],
+                ['saveDefault', () => { if (!confirm('确定将当前排版设为默认模板？')) return; this.syncUIData(); this.App.api.storageSet('main_richang', this.nowTemp); this.App.api.storageSet('main_quantao', this.nowTemp); this._showToast('✅ 已永久保存'); }],
+                ['resetConfig', () => { if (!confirm('确定恢复原始模板？（不会清除用户映射）')) return; this.App.api.storageRemove('main_richang'); this.App.api.storageRemove('main_quantao'); this.App.api.storageRemove('yuqing_presets'); this.presets = { channels: this._defaultPresets.channels.map(c => ({ ...c })), columns: this._defaultPresets.columns.slice() }; this._savePresets(); this._loadTemplate(); this.render(); this.updatePreview(); this._showToast('✅ 已恢复模板，字段映射保留'); }],
                 ['clearAll', () => { if (!confirm('确定清空所有文本框？')) return; this.container.querySelectorAll('.input-single, .time-h, .time-m, .time-s, .fix-edit').forEach(el => el.value = ''); this.container.querySelectorAll('.textarea-mod').forEach(el => el.value = ''); this.updatePreview(); }],
                 ['copyTip', () => { this._showCopyConfirm('tip'); }],
                 ['copyAdd', () => { this._showCopyConfirm('add'); }],
-                ['resetAll', () => { if (!confirm('确定恢复全部默认设置？')) return; this._fieldLabelMap = {}; this._punctuationMode = 'off'; this._saveSettings(); this.App.api.storageRemove('main_richang'); this.App.api.storageRemove('main_quantao');this.App.api.storageRemove('yuqing_presets');this._loadPresets();this._loadTemplate(); this.render(); this.updatePreview(); alert('已完全恢复默认'); }]
+                ['resetAll', () => { if (!confirm('确定恢复全部默认设置？')) return; this._fieldLabelMap = {}; this._punctuationMode = 'off'; this._saveSettings(); this.App.api.storageRemove('main_richang'); this.App.api.storageRemove('main_quantao');this.App.api.storageRemove('yuqing_presets');this._loadPresets();this._loadTemplate(); this.render(); this.updatePreview(); this._showToast('✅ 已完全恢复默认'); }]
             ];
             actions.forEach(([name, fn]) => this._eventUnsubscribers.push(this.App.EventBus.on(name, fn)));
         },
@@ -1023,7 +1023,7 @@
             const newsTime = fields.find(f => f.label === '新闻时长'), exposeTime = fields.find(f => f.label === '露出时长');
             if (newsTime && exposeTime) { const nv = newsTime.value.replace(/['\"]/g,''), ev = exposeTime.value.replace(/['\"]/g,''); if (nv && ev) { const equal = nv === ev; newsTime.specialCheck = equal ? '✅ 与露出时长相等' : '⚠️ 与露出时长不相等'; exposeTime.specialCheck = equal ? '✅ 与新闻时长相等' : '⚠️ 与新闻时长不相等'; } }
 
-            if (fields.length === 0) { alert('没有可审阅的字段'); return; }
+            if (fields.length === 0) { this._showToast('⚠️ 没有可审阅的字段'); return; }
 
             let step = 'confirm', currentIndex = 0;
             document.querySelectorAll('[data-yq-copy-overlay]').forEach(o => o.remove());
