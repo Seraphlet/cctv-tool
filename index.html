@@ -1,10 +1,51 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-release="20261024-cache-v1">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>央视舆情模块化生成器</title>
-    <link rel="stylesheet" href="style.css">
+    <!-- 每次访问以部署后的最新文件为准；保留 localStorage / IndexedDB 用户数据 -->
+    <script>
+    (function () {
+        'use strict';
+        const version = String(Date.now());
+        const style = document.createElement('link');
+        style.rel = 'stylesheet';
+        style.href = 'style.css?v=' + version;
+        document.head.appendChild(style);
+        const core = document.createElement('script');
+        core.src = 'core.js?v=' + version;
+        core.defer = true;
+        document.head.appendChild(core);
+
+        // 老标签页在恢复使用时检测新版 HTML，避免持续运行旧代码。
+        // 只有远端版本变更才刷新；网络失败不影响离线期间继续使用。
+        const pageSignature = document.documentElement.getAttribute('data-release') || '';
+        let checking = false;
+        async function checkUpdate() {
+            if (checking) return;
+            checking = true;
+            try {
+                const res = await fetch('index.html?check=' + Date.now(), { cache: 'no-store' });
+                if (!res.ok) return;
+                const html = await res.text();
+                const match = html.match(/<html[^>]*data-release="([^"]+)"/i);
+                if (match && match[1] !== pageSignature) {
+                    location.replace(location.pathname + '?v=' + encodeURIComponent(match[1]));
+                }
+            } catch (e) {
+                console.debug('版本检查暂不可用', e);
+            } finally {
+                checking = false;
+            }
+        }
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) checkUpdate();
+        });
+        window.addEventListener('focus', checkUpdate);
+        setInterval(() => { if (!document.hidden) checkUpdate(); }, 5 * 60 * 1000);
+    })();
+    </script>
 </head>
 <body>
 <div class="container">
@@ -47,6 +88,6 @@
     <div class="preview-block" id="previewAll"></div>
 </div>
 
-<script src="core.js"></script>
+
 </body>
 </html>
