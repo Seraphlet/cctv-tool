@@ -1,49 +1,90 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-release="20261024-cache-v1">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>央视舆情模块化生成器</title>
-    <!-- 每次访问以部署后的最新文件为准；保留 localStorage / IndexedDB 用户数据 -->
+    <!-- 静态站点自动更新：入口资源绕过旧缓存，文件指纹用于检测后续部署。 -->
     <script>
     (function () {
         'use strict';
-        const version = String(Date.now());
+
+        // 版本查询参数不会清理用户的 localStorage、IndexedDB 或其他业务数据。
+        const assetVersion = String(Date.now());
         const style = document.createElement('link');
         style.rel = 'stylesheet';
-        style.href = 'style.css?v=' + version;
+        style.href = 'style.css?v=' + assetVersion;
         document.head.appendChild(style);
+
         const core = document.createElement('script');
-        core.src = 'core.js?v=' + version;
+        core.src = 'core.js?v=' + assetVersion;
         core.defer = true;
         document.head.appendChild(core);
 
-        // 老标签页在恢复使用时检测新版 HTML，避免持续运行旧代码。
-        // 只有远端版本变更才刷新；网络失败不影响离线期间继续使用。
-        const pageSignature = document.documentElement.getAttribute('data-release') || '';
+        // 检查所有本地静态资源：只修改某一个 modules/*.js 也能识别更新。
+        // HEAD 主要使用 ETag / Last-Modified；缺失时回退读取并计算文件摘要。
+        const files = [
+            'index.html', 'style.css', 'core.js',
+            'modules/builder-module.js', 'modules/calc-module.js',
+            'modules/extract-module.js', 'modules/image-pad.js',
+            'modules/news-module.js', 'modules/pingjie-module.js',
+            'modules/quickboard-module.js', 'modules/reader-module.js',
+            'modules/reminder-module.js', 'modules/scratchpad-module.js',
+            'modules/yuqing-module.js'
+        ];
+        let baseline = null;
         let checking = false;
+        let lastChecked = 0;
+
+        async function signature(path) {
+            const url = path + '?version_check=' + Date.now();
+            const response = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+            if (!response.ok) throw new Error(path + ': HTTP ' + response.status);
+            const etag = response.headers.get('etag');
+            const modified = response.headers.get('last-modified');
+            const length = response.headers.get('content-length');
+            if (etag) return etag;
+            if (modified && length) return modified + '/' + length;
+
+            // 没有可用的缓存验证头时，用内容摘要判定，避免每次都误报更新。
+            const full = await fetch(url, { cache: 'no-store' });
+            if (!full.ok) throw new Error(path + ': HTTP ' + full.status);
+            const bytes = await full.arrayBuffer();
+            const digest = await crypto.subtle.digest('SHA-256', bytes);
+            return Array.from(new Uint8Array(digest)).map(v => v.toString(16).padStart(2, '0')).join('');
+        }
+
         async function checkUpdate() {
-            if (checking) return;
+            if (checking || document.hidden) return;
+            if (baseline && Date.now() - lastChecked < 60 * 1000) return;
             checking = true;
             try {
-                const res = await fetch('index.html?check=' + Date.now(), { cache: 'no-store' });
-                if (!res.ok) return;
-                const html = await res.text();
-                const match = html.match(/<html[^>]*data-release="([^"]+)"/i);
-                if (match && match[1] !== pageSignature) {
-                    location.replace(location.pathname + '?v=' + encodeURIComponent(match[1]));
+                const versions = await Promise.all(files.map(signature));
+                if (!baseline) {
+                    baseline = versions;
+                } else if (versions.some((value, i) => value !== baseline[i])) {
+                    // 页面数据先由现有业务模块管理；刷新不删除持久存储。
+                    // 换一个 URL 参数保证入口 HTML 本身也不会命中旧缓存。
+                    const url = new URL(location.href);
+                    url.searchParams.set('v', String(Date.now()));
+                    location.replace(url.href);
+                    return;
                 }
-            } catch (e) {
-                console.debug('版本检查暂不可用', e);
+                lastChecked = Date.now();
+            } catch (error) {
+                // 网络断开时保留当前页面，下一次恢复焦点再重试。
+                console.debug('[更新检查] 暂时不可用', error);
             } finally {
                 checking = false;
             }
         }
+
+        window.addEventListener('load', checkUpdate);
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) checkUpdate();
         });
         window.addEventListener('focus', checkUpdate);
-        setInterval(() => { if (!document.hidden) checkUpdate(); }, 5 * 60 * 1000);
+        setInterval(checkUpdate, 5 * 60 * 1000);
     })();
     </script>
 </head>
