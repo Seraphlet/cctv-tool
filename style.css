@@ -1376,3 +1376,59 @@ body {
 
 /* 常驻筛选高亮 */
 .rm-filter-resident.active { background: #8b5cf6; color: #fff; border-color: #8b5cf6; }
+
+
+/* ========== 右下角悬浮工具交互修复 ========== */
+/* 面板置于独立高层，避免被页面其他模块的定位元素覆盖。 */
+#scratchpadPanel,
+#imagepadPanel {
+    box-sizing: border-box;
+    pointer-events: auto;
+    max-width: calc(100vw - 32px);
+}
+#scratchpadPanel.fullscreen {
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    min-height: 0;
+    border-radius: 0;
+    z-index: 2147482000;
+    display: flex !important;
+}
+#scratchpadPanel.fullscreen #spTextarea {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto !important;
+    resize: none;
+}
+#imagepadPanel {
+    max-height: calc(100vh - 32px);
+}
+#imagepadPanel.fullscreen {
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    min-height: 0;
+    border-radius: 0;
+    z-index: 2147482000;
+    display: flex !important;
+}
+#imagepadPanel.fullscreen .img-grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+}
+#scratchpadPanel .sp-header,
+#imagepadPanel .imghdr,
+#imagepadPanel #imgStatus {
+    flex: 0 0 auto;
+}
+#scratchpadPanel #spTextarea {
+    min-width: 0;
+}
