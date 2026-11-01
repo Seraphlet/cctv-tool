@@ -29,6 +29,7 @@
         const utilityTitle = $('#uiUtilityTitle');
         const currentSection = $('#uiCurrentSection');
         const originalTabs = $('#mainTabs');
+        const rightDock = $('.ui-right-dock');
 
         let preferences = { showScratchpad: true, showImagepad: true };
         try {
@@ -140,6 +141,9 @@
         function bindFloatingControls() {
             const note = noteToggle();
             const image = imageToggle();
+            // 原悬浮按钮由 core.js 动态插入 body；只迁移按钮 DOM，不重建原事件。
+            if (note && note.parentElement !== rightDock) rightDock.insertBefore(note, railSettings);
+            if (image && image.parentElement !== rightDock) rightDock.insertBefore(image, railSettings);
 
             if (note && note.dataset.uiBound !== '1') {
                 note.dataset.uiBound = '1';
@@ -260,8 +264,25 @@
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initWorkspaceUI, { once: true });
+        document.addEventListener('DOMContentLoaded', bootWorkspaceUI, { once: true });
     } else {
-        initWorkspaceUI();
+        bootWorkspaceUI();
+    }
+
+    function bootWorkspaceUI() {
+        if (window.App && document.getElementById('uiWorkspace')) {
+            initWorkspaceUI();
+            return;
+        }
+        let retries = 0;
+        const timer = setInterval(() => {
+            if (window.App && document.getElementById('uiWorkspace')) {
+                clearInterval(timer);
+                initWorkspaceUI();
+            } else if (++retries >= 60) {
+                clearInterval(timer);
+                console.error('[UI] 核心框架未就绪，工作台初始化取消');
+            }
+        }, 100);
     }
 })(window, document);
