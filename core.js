@@ -488,83 +488,119 @@
 
     // ========== 随手记（悬浮面板） ==========
     function initScratchpad() {
-        const NOTE_KEY = 'scratchpad_note';
+        // 防止入口脚本意外重复执行时重复创建组件和事件监听器。
+        if (document.getElementById('scratchpadToggle') || document.getElementById('scratchpadPanel')) return;
 
+        const NOTE_KEY = 'scratchpad_note';
         const btn = document.createElement('button');
+        btn.type = 'button';
         btn.id = 'scratchpadToggle';
         btn.textContent = '📝';
         btn.title = '随手记';
+        btn.setAttribute('aria-expanded', 'false');
         document.body.appendChild(btn);
 
         const panel = document.createElement('div');
         panel.id = 'scratchpadPanel';
-        panel.innerHTML = `
-            <div class="sp-header">
-                <span>随手记</span>
-                <div>
-                    <button id="spFullscreenBtn" title="全屏">⛶</button>
-                    <button id="spClearBtn" title="清空">🗑️</button>
-                </div>
-            </div>
-            <textarea id="spTextarea" placeholder="写点什么...自动保存"></textarea>
-            <div id="spStatus">已保存</div>
-        `;
+        panel.innerHTML =
+            '<div class="sp-header">' +
+                '<span>随手记</span>' +
+                '<div>' +
+                    '<button type="button" id="spFullscreenBtn" title="全屏">⛶</button>' +
+                    '<button type="button" id="spClearBtn" title="清空">🗑️</button>' +
+                '</div>' +
+            '</div>' +
+            '<textarea id="spTextarea" placeholder="写点什么...自动保存"></textarea>' +
+            '<div id="spStatus">已保存</div>';
         document.body.appendChild(panel);
 
-        const textarea = document.getElementById('spTextarea');
-        const status = document.getElementById('spStatus');
-        const clearBtn = document.getElementById('spClearBtn');
-        const fullscreenBtn = document.getElementById('spFullscreenBtn');
+        const textarea = panel.querySelector('#spTextarea');
+        const status = panel.querySelector('#spStatus');
+        const clearBtn = panel.querySelector('#spClearBtn');
+        const fullscreenBtn = panel.querySelector('#spFullscreenBtn');
 
         const saved = API.storageGet(NOTE_KEY);
-        if (saved && saved.content) textarea.value = saved.content;
+        if (saved && typeof saved.content === 'string') textarea.value = saved.content;
 
-        let saveTimer;
+        let saveTimer = null;
+        function saveNow() {
+            if (saveTimer) {
+                clearTimeout(saveTimer);
+                saveTimer = null;
+            }
+            API.storageSet(NOTE_KEY, {
+                content: textarea.value,
+                updatedAt: Date.now()
+            });
+            status.textContent = '已保存 ' + new Date().toLocaleTimeString();
+        }
+
         textarea.addEventListener('input', () => {
-            clearTimeout(saveTimer);
-            saveTimer = setTimeout(() => {
-                API.storageSet(NOTE_KEY, {
-                    content: textarea.value,
-                    updatedAt: Date.now()
-                });
-                status.textContent = '已保存 ' + new Date().toLocaleTimeString();
-            }, 500);
+            if (saveTimer) clearTimeout(saveTimer);
+            status.textContent = '保存中...';
+            saveTimer = setTimeout(saveNow, 500);
         });
 
+        function setOpen(open) {
+            panel.classList.toggle('show', Boolean(open));
+            btn.setAttribute('aria-expanded', String(Boolean(open)));
+            if (!open) panel.classList.remove('fullscreen');
+        }
+
+        function setFullscreen(fullscreen) {
+            const enabled = Boolean(fullscreen);
+            panel.classList.add('show');
+            panel.classList.toggle('fullscreen', enabled);
+            btn.setAttribute('aria-expanded', 'true');
+            fullscreenBtn.textContent = enabled ? '⤢' : '⛶';
+            fullscreenBtn.title = enabled ? '退出全屏' : '全屏';
+            if (enabled) {
+                try { textarea.focus({ preventScroll: true }); } catch (_) { textarea.focus(); }
+            }
+        }
+
         btn.addEventListener('click', () => {
-            panel.classList.toggle('show');
-            if (panel.classList.contains('show')) textarea.focus();
+            const open = !panel.classList.contains('show');
+            setOpen(open);
+            if (open) {
+                try { textarea.focus({ preventScroll: true }); } catch (_) { textarea.focus(); }
+            }
         });
 
         clearBtn.addEventListener('click', () => {
-            if (confirm('确定清空随手记内容？')) {
-                textarea.value = '';
-                API.storageRemove(NOTE_KEY);
-                status.textContent = '已清空';
+            if (!confirm('确定清空随手记内容？')) return;
+            textarea.value = '';
+            API.storageRemove(NOTE_KEY);
+            if (saveTimer) {
+                clearTimeout(saveTimer);
+                saveTimer = null;
             }
-        });
-
-        fullscreenBtn.addEventListener('click', () => {
-            panel.classList.toggle('fullscreen');
-            if (panel.classList.contains('fullscreen')) {
-                textarea.style.height = 'calc(100vh - 60px)';
-            } else {
-                textarea.style.height = '';
-            }
+            status.textContent = '已清空';
             textarea.focus();
         });
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && panel.classList.contains('show')) {
-                panel.classList.remove('show');
-            }
+        fullscreenBtn.addEventListener('click', () => {
+            setFullscreen(!panel.classList.contains('fullscreen'));
         });
 
-        document.addEventListener('click', (e) => {
-            if (!panel.contains(e.target) && e.target !== btn) {
-                panel.classList.remove('show');
-            }
+        // 内部交互不再向页面级 click 监听器冒泡。
+        panel.addEventListener('click', (event) => event.stopPropagation());
+
+        document.addEventListener('pointerdown', (event) => {
+            if (!panel.classList.contains('show')) return;
+            if (panel.contains(event.target) || btn.contains(event.target)) return;
+            setOpen(false);
+        }, true);
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key !== 'Escape' || !panel.classList.contains('show')) return;
+            event.preventDefault();
+            if (panel.classList.contains('fullscreen')) setFullscreen(false);
+            else setOpen(false);
         });
+
+        // 页面离开前立即落盘，避免防抖窗口内的最后一次输入丢失。
+        window.addEventListener('pagehide', saveNow);
     }
 
     // ========== 图片暂存板 ==========
@@ -573,49 +609,46 @@
         async open() {
             return new Promise((resolve, reject) => {
                 const req = indexedDB.open('ImagePadDB', 1);
-                req.onupgradeneeded = (e) => {
-                    const db = e.target.result;
+                req.onupgradeneeded = (event) => {
+                    const db = event.target.result;
                     if (!db.objectStoreNames.contains('images')) {
                         const store = db.createObjectStore('images', { keyPath: 'id', autoIncrement: true });
                         store.createIndex('createdAt', 'createdAt', { unique: false });
                     }
                 };
-                req.onsuccess = (e) => { this.db = e.target.result; resolve(); };
+                req.onsuccess = (event) => {
+                    this.db = event.target.result;
+                    this.db.onversionchange = () => this.db.close();
+                    resolve();
+                };
                 req.onerror = () => reject(req.error);
             });
         }
         async add(item) {
             return new Promise((resolve, reject) => {
                 const tx = this.db.transaction('images', 'readwrite');
-                const store = tx.objectStore('images');
-                const req = store.add(item);
+                const req = tx.objectStore('images').add(item);
                 req.onsuccess = () => resolve(req.result);
                 req.onerror = () => reject(req.error);
             });
         }
         async getAll() {
             return new Promise((resolve, reject) => {
-                const tx = this.db.transaction('images', 'readonly');
-                const store = tx.objectStore('images');
-                const req = store.getAll();
-                req.onsuccess = () => resolve(req.result);
+                const req = this.db.transaction('images', 'readonly').objectStore('images').getAll();
+                req.onsuccess = () => resolve(req.result || []);
                 req.onerror = () => reject(req.error);
             });
         }
         async delete(id) {
             return new Promise((resolve, reject) => {
-                const tx = this.db.transaction('images', 'readwrite');
-                const store = tx.objectStore('images');
-                const req = store.delete(id);
+                const req = this.db.transaction('images', 'readwrite').objectStore('images').delete(id);
                 req.onsuccess = () => resolve();
                 req.onerror = () => reject(req.error);
             });
         }
         async clear() {
             return new Promise((resolve, reject) => {
-                const tx = this.db.transaction('images', 'readwrite');
-                const store = tx.objectStore('images');
-                const req = store.clear();
+                const req = this.db.transaction('images', 'readwrite').objectStore('images').clear();
                 req.onsuccess = () => resolve();
                 req.onerror = () => reject(req.error);
             });
@@ -623,154 +656,254 @@
     }
 
     async function initImagePad() {
+        if (document.getElementById('imagepadToggle') || document.getElementById('imagepadPanel')) return;
+
         const db = new ImagePadDB();
-        await db.open();
-        let images = await db.getAll();
+        let images;
+        try {
+            await db.open();
+            images = await db.getAll();
+        } catch (error) {
+            console.error('[图片暂存板] 初始化失败:', error);
+            if (typeof window.message === 'function') window.message('图片暂存板初始化失败，请检查浏览器 IndexedDB 权限', 'error');
+            return;
+        }
 
         const btn = document.createElement('button');
+        btn.type = 'button';
         btn.id = 'imagepadToggle';
-        btn.innerHTML = '🖼️';
+        btn.textContent = '🖼️';
         btn.title = '图片暂存板';
-        btn.style.cssText = 'position:fixed;bottom:75px;right:20px;';
+        btn.setAttribute('aria-expanded', 'false');
         document.body.appendChild(btn);
 
         const panel = document.createElement('div');
         panel.id = 'imagepadPanel';
-        panel.innerHTML = `
-            <div class="imghdr">
-                <span>图片暂存 (${images.length})</span>
-                <div>
-                    <button id="imgFullscreenBtn" title="全屏">⛶</button>
-                    <button id="imgClearBtn" title="清空">🗑️</button>
-                </div>
-            </div>
-            <div id="imgGrid" class="img-grid">${renderGrid(images)}</div>
-            <div id="imgStatus">支持 Ctrl+V 粘贴图片，点击图片放大查看</div>
-        `;
+        panel.innerHTML =
+            '<div class="imghdr">' +
+                '<span>图片暂存 (' + images.length + ')</span>' +
+                '<div>' +
+                    '<button type="button" id="imgFullscreenBtn" title="全屏">⛶</button>' +
+                    '<button type="button" id="imgClearBtn" title="清空">🗑️</button>' +
+                '</div>' +
+            '</div>' +
+            '<div id="imgGrid" class="img-grid">' + renderGrid(images) + '</div>' +
+            '<div id="imgStatus">支持 Ctrl+V 粘贴图片，点击图片放大查看</div>';
         document.body.appendChild(panel);
 
-        const gridEl = document.getElementById('imgGrid');
-        const statusEl = document.getElementById('imgStatus');
-        const clearBtn = document.getElementById('imgClearBtn');
-        const fullscreenBtn = document.getElementById('imgFullscreenBtn');
+        const gridEl = panel.querySelector('#imgGrid');
+        const statusEl = panel.querySelector('#imgStatus');
+        const clearBtn = panel.querySelector('#imgClearBtn');
+        const fullscreenBtn = panel.querySelector('#imgFullscreenBtn');
+        let activePreviewClose = null;
 
-        function renderGrid(imgs) {
-            if (!imgs.length) return '<div style="color:#ccc;text-align:center;padding:40px;">暂无图片</div>';
-            const sorted = [...imgs].sort((a,b) => b.createdAt - a.createdAt);
-            return sorted.map(img => `
-                <div class="img-item" data-id="${img.id}">
-                    <img src="${img.dataUrl}" title="点击放大查看">
-                    <button class="img-del-btn" data-id="${img.id}">×</button>
-                </div>
-            `).join('');
+        function renderGrid(items) {
+            if (!items.length) return '<div class="img-empty" style="color:#ccc;text-align:center;padding:40px;">暂无图片</div>';
+            const sorted = [...items].sort((a, b) => b.createdAt - a.createdAt);
+            return sorted.map((img) =>
+                '<div class="img-item" data-id="' + Number(img.id) + '">' +
+                    '<img src="' + img.dataUrl + '" title="点击放大查看" alt="暂存图片">' +
+                    '<button type="button" class="img-del-btn" data-id="' + Number(img.id) + '" title="删除图片">×</button>' +
+                '</div>'
+            ).join('');
         }
 
         async function refreshGrid() {
             images = await db.getAll();
             gridEl.innerHTML = renderGrid(images);
-            document.querySelector('#imagepadPanel .imghdr span').textContent = `图片暂存 (${images.length})`;
+            const count = panel.querySelector('.imghdr span');
+            if (count) count.textContent = '图片暂存 (' + images.length + ')';
         }
 
-        panel.addEventListener('paste', async (e) => {
-            const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
-            if (!items) return;
-            for (const item of items) {
-                if (item.type.startsWith('image/')) {
-                    e.preventDefault();
-                    const blob = item.getAsFile();
-                    const reader = new FileReader();
-                    reader.onload = async (ev) => {
-                        const dataUrl = ev.target.result;
-                        const newImg = { dataUrl, createdAt: Date.now() };
-                        const id = await db.add(newImg);
-                        newImg.id = id;
-                        images.push(newImg);
-                        if (images.length > 50) {
-                            const sorted = [...images].sort((a,b) => a.createdAt - b.createdAt);
-                            const toDelete = sorted.slice(0, images.length - 50);
-                            for (const img of toDelete) await db.delete(img.id);
-                            images = images.filter(img => !toDelete.includes(img));
-                        }
-                        await refreshGrid();
-                        statusEl.textContent = '已添加图片，点击图片放大查看';
-                    };
-                    reader.readAsDataURL(blob);
-                }
-            }
-        });
+        function setOpen(open) {
+            panel.classList.toggle('show', Boolean(open));
+            btn.setAttribute('aria-expanded', String(Boolean(open)));
+            if (!open) panel.classList.remove('fullscreen');
+        }
 
-        gridEl.addEventListener('click', (e) => {
-            const imgItem = e.target.closest('.img-item');
-            if (!imgItem) return;
-            const id = parseInt(imgItem.dataset.id);
-            const imgData = images.find(i => i.id === id);
-            if (!imgData) return;
+        function setFullscreen(fullscreen) {
+            const enabled = Boolean(fullscreen);
+            panel.classList.add('show');
+            panel.classList.toggle('fullscreen', enabled);
+            btn.setAttribute('aria-expanded', 'true');
+            fullscreenBtn.textContent = enabled ? '⤢' : '⛶';
+            fullscreenBtn.title = enabled ? '退出全屏' : '全屏';
+        }
+
+        async function addImage(blob) {
+            const dataUrl = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(reader.error || new Error('图片读取失败'));
+                reader.readAsDataURL(blob);
+            });
+            const id = await db.add({ dataUrl, createdAt: Date.now() });
+            images.push({ id, dataUrl, createdAt: Date.now() });
+
+            if (images.length > 50) {
+                const oldest = [...images].sort((a, b) => a.createdAt - b.createdAt)
+                    .slice(0, images.length - 50);
+                for (const item of oldest) await db.delete(item.id);
+            }
+            await refreshGrid();
+            statusEl.textContent = '已添加图片';
+        }
+
+        function openPreview(imgData) {
+            if (activePreviewClose) activePreviewClose();
 
             const overlay = document.createElement('div');
             overlay.className = 'img-preview-overlay';
-            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:10000;display:flex;align-items:center;justify-content:center;flex-direction:column;';
+            overlay.setAttribute('role', 'dialog');
+            overlay.setAttribute('aria-modal', 'true');
+            overlay.setAttribute('aria-label', '图片预览');
+            overlay.style.cssText =
+                'position:fixed;inset:0;width:100%;height:100%;background:rgba(0,0,0,0.88);' +
+                'z-index:2147482500;display:flex;align-items:center;justify-content:center;' +
+                'flex-direction:column;padding:24px;box-sizing:border-box;';
+
             const img = document.createElement('img');
             img.src = imgData.dataUrl;
-            img.style.maxWidth = '90%';
-            img.style.maxHeight = '80%';
+            img.alt = '图片预览';
+            img.style.maxWidth = 'min(92vw, 1400px)';
+            img.style.maxHeight = '78vh';
             img.style.objectFit = 'contain';
+
             const btnRow = document.createElement('div');
-            btnRow.style.marginTop = '15px';
-            btnRow.innerHTML = `
-                <button id="previewCopyBtn" style="padding:8px 16px;margin-right:10px;background:#1677ff;color:#fff;border:none;border-radius:4px;cursor:pointer;">📋 复制图片</button>
-                <button id="previewCloseBtn" style="padding:8px 16px;background:#f5f5f5;border:1px solid #ddd;border-radius:4px;cursor:pointer;">关闭</button>
-            `;
+            btnRow.style.cssText = 'display:flex;gap:10px;margin-top:16px;';
+            btnRow.innerHTML =
+                '<button type="button" id="previewCopyBtn" style="padding:8px 16px;background:#1677ff;color:#fff;border:none;border-radius:4px;cursor:pointer;">📋 复制图片</button>' +
+                '<button type="button" id="previewCloseBtn" style="padding:8px 16px;background:#f5f5f5;border:1px solid #ddd;border-radius:4px;cursor:pointer;">关闭</button>';
+
             overlay.appendChild(img);
             overlay.appendChild(btnRow);
             document.body.appendChild(overlay);
 
-            const closePreview = () => overlay.remove();
-            overlay.addEventListener('click', (ev) => {
-                if (ev.target.tagName === 'BUTTON') return;
+            const closePreview = () => {
+                document.removeEventListener('keydown', onPreviewKeydown, true);
+                overlay.remove();
+                if (activePreviewClose === closePreview) activePreviewClose = null;
+            };
+            const onPreviewKeydown = (event) => {
+                if (event.key !== 'Escape') return;
+                event.preventDefault();
+                event.stopPropagation();
                 closePreview();
+            };
+            activePreviewClose = closePreview;
+            document.addEventListener('keydown', onPreviewKeydown, true);
+
+            overlay.addEventListener('click', (event) => {
+                if (event.target === overlay) closePreview();
+                event.stopPropagation();
             });
             overlay.querySelector('#previewCloseBtn').addEventListener('click', closePreview);
             overlay.querySelector('#previewCopyBtn').addEventListener('click', async () => {
                 try {
-                    const resp = await fetch(imgData.dataUrl);
-                    const blob = await resp.blob();
+                    if (!navigator.clipboard || !navigator.clipboard.write || typeof ClipboardItem === 'undefined') {
+                        throw new Error('当前浏览器不支持复制图片');
+                    }
+                    const response = await fetch(imgData.dataUrl);
+                    const blob = await response.blob();
                     await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
-                    message('已复制图片到剪贴板', 'success');
-                } catch (err) { message('复制失败，请重试', 'error'); }
+                    statusEl.textContent = '已复制图片到剪贴板';
+                    if (typeof window.message === 'function') window.message('已复制图片到剪贴板', 'success');
+                } catch (error) {
+                    statusEl.textContent = error.message || '复制失败，请重试';
+                    if (typeof window.message === 'function') window.message(statusEl.textContent, 'error');
+                }
             });
-            const escHandler = (ev) => { if (ev.key === 'Escape') { closePreview(); document.removeEventListener('keydown', escHandler); } };
-            document.addEventListener('keydown', escHandler);
-        });
+        }
 
-        gridEl.addEventListener('click', async (e) => {
-            const delBtn = e.target.closest('.img-del-btn');
-            if (!delBtn) return;
-            e.stopPropagation();
-            const id = parseInt(delBtn.dataset.id);
-            await db.delete(id);
-            images = images.filter(i => i.id !== id);
-            await refreshGrid();
+        // 单一事件委托：先判断删除按钮，再判断图片预览，避免两个同级监听器互相冲突。
+        gridEl.addEventListener('click', async (event) => {
+            const deleteButton = event.target.closest('.img-del-btn');
+            if (deleteButton) {
+                event.preventDefault();
+                event.stopPropagation();
+                const id = Number(deleteButton.dataset.id);
+                try {
+                    await db.delete(id);
+                    images = images.filter((item) => item.id !== id);
+                    await refreshGrid();
+                } catch (error) {
+                    console.error('[图片暂存板] 删除失败:', error);
+                    statusEl.textContent = '删除失败，请重试';
+                }
+                return;
+            }
+
+            const imgItem = event.target.closest('.img-item');
+            if (!imgItem) return;
+            const id = Number(imgItem.dataset.id);
+            const imgData = images.find((item) => item.id === id);
+            if (imgData) openPreview(imgData);
         });
 
         clearBtn.addEventListener('click', async () => {
             if (!confirm('清空所有图片？')) return;
-            await db.clear();
-            images = [];
-            await refreshGrid();
-        });
-
-        fullscreenBtn.addEventListener('click', () => panel.classList.toggle('fullscreen'));
-        btn.addEventListener('click', () => panel.classList.toggle('show'));
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && panel.classList.contains('show')) panel.classList.remove('show');
-        });
-
-        document.addEventListener('click', (e) => {
-            if (e.target.closest('.img-preview-overlay')) return;
-            if (!panel.contains(e.target) && e.target !== btn) {
-                panel.classList.remove('show');
+            try {
+                await db.clear();
+                images = [];
+                await refreshGrid();
+                statusEl.textContent = '已清空';
+            } catch (error) {
+                console.error('[图片暂存板] 清空失败:', error);
+                statusEl.textContent = '清空失败，请重试';
             }
+        });
+
+        fullscreenBtn.addEventListener('click', () => {
+            setFullscreen(!panel.classList.contains('fullscreen'));
+        });
+
+        btn.addEventListener('click', () => {
+            setOpen(!panel.classList.contains('show'));
+        });
+
+        panel.addEventListener('click', (event) => event.stopPropagation());
+
+        // 在 document 层监听粘贴，避免面板 div 未获得焦点时收不到 paste 事件。
+        document.addEventListener('paste', async (event) => {
+            if (!panel.classList.contains('show')) return;
+            const target = event.target;
+            const isEditable = target && (
+                target.isContentEditable ||
+                /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName || '')
+            );
+            if (isEditable && !panel.contains(target)) return;
+
+            const items = Array.from((event.clipboardData && event.clipboardData.items) || []);
+            const imageItems = items.filter((item) => item.type && item.type.startsWith('image/'));
+            if (!imageItems.length) return;
+
+            event.preventDefault();
+            for (const item of imageItems) {
+                const blob = item.getAsFile();
+                if (!blob) continue;
+                try {
+                    await addImage(blob);
+                } catch (error) {
+                    console.error('[图片暂存板] 粘贴图片失败:', error);
+                    statusEl.textContent = '添加图片失败，请重试';
+                }
+            }
+        });
+
+        document.addEventListener('pointerdown', (event) => {
+            if (!panel.classList.contains('show')) return;
+            if (panel.contains(event.target) || btn.contains(event.target)) return;
+            if (event.target.closest && event.target.closest('.img-preview-overlay')) return;
+            if (activePreviewClose) return;
+            setOpen(false);
+        }, true);
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key !== 'Escape' || !panel.classList.contains('show')) return;
+            if (activePreviewClose) return;
+            event.preventDefault();
+            if (panel.classList.contains('fullscreen')) setFullscreen(false);
+            else setOpen(false);
         });
     }
 
