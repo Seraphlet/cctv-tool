@@ -52,3 +52,9 @@ body.ui-workbench{margin:0;padding:0;background:#f3f7ff;color:var(--ui-text);fon
 body:has(#scratchpadPanel.fullscreen) .ui-workspace,body:has(#imagepadPanel.fullscreen) .ui-workspace{padding-right:74px}
 @media(max-width:1000px){.ui-workspace{padding:14px 64px 24px 12px}.ui-workspace .container{padding:15px}.ui-dock-open .ui-workspace{padding-right:64px}.ui-settings-panel,#scratchpadPanel.show:not(.fullscreen),#imagepadPanel.show:not(.fullscreen){right:68px!important;box-shadow:0 10px 40px #23496a40!important}.ui-header-desc,.ui-header-status{display:none}.ui-utility-active .calc-panel{grid-template-columns:1fr}}
 @media(max-width:650px){.ui-header{padding:0 12px;gap:10px}.ui-brand{font-size:14px}.ui-header-settings{font-size:0;padding:8px}.ui-header-settings::first-letter{font-size:18px}.ui-mode-card{min-height:66px;padding:12px 10px}.ui-mode-card strong{font-size:15px}.ui-mode-symbol{font-size:21px}.ui-mode-card small{font-size:10px}.ui-workspace .container{padding:12px}.ui-workspace .module-row{padding:8px}.ui-workspace .textarea-mod{width:min(220px,100%)}}
+/* Respect core.js display:none for category tabs on unrelated modules. */
+.ui-left-drawer .tab-sub{display:flex}
+.ui-left-drawer .tab-sub[style*="display: none"]{display:none!important}
+.ui-left-drawer .tab-sub[style*="display: block"]{display:flex!important}
+/* Small-window tools remain above the main workspace, but below fullscreen. */
+.ui-right-dock #scratchpadToggle,.ui-right-dock #imagepadToggle{z-index:auto!important}
