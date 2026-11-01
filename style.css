@@ -1432,3 +1432,28 @@ body {
 #scratchpadPanel #spTextarea {
     min-width: 0;
 }
+
+
+/* ========== 悬浮随手记/图片暂存板遮挡修复（2026-11-02） ========== */
+/*
+ * 旧结构中，图片按钮位于右下角第二层，弹出面板却从 bottom:80px 开始，
+ * 且按钮 z-index:9000 高于面板的 8999，导致按钮盖住随手记底部。
+ * 统一把两个普通面板放在两个悬浮按钮上方；不改动全屏规则。
+ */
+#imagepadToggle {
+    right: 20px; /* 恢复至随手记按钮正上方，与旧版 core.js 的位置一致 */
+    bottom: 75px;
+}
+#scratchpadPanel:not(.fullscreen),
+#imagepadPanel:not(.fullscreen) {
+    bottom: 135px; /* 图片按钮顶端距底部 119px，预留 16px 间隔 */
+}
+#scratchpadPanel.show:not(.fullscreen),
+#imagepadPanel.show:not(.fullscreen) {
+    z-index: 9100; /* 弹出面板高于 z-index:9000 的悬浮入口 */
+}
+#imagepadPanel:not(.fullscreen) {
+    right: 20px;
+    max-height: calc(100vh - 150px);
+    max-height: calc(100dvh - 150px);
+}
