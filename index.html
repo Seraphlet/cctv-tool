@@ -15,6 +15,10 @@
         style.rel = 'stylesheet';
         style.href = 'style.css?v=' + assetVersion;
         document.head.appendChild(style);
+        const uiStyle = document.createElement('link');
+        uiStyle.rel = 'stylesheet';
+        uiStyle.href = 'ui-workspace.css?v=' + assetVersion;
+        document.head.appendChild(uiStyle);
 
         const core = document.createElement('script');
         core.src = 'core.js?v=' + assetVersion;
@@ -24,7 +28,7 @@
         // 检查所有本地静态资源：只修改某一个 modules/*.js 也能识别更新。
         // HEAD 主要使用 ETag / Last-Modified；缺失时回退读取并计算文件摘要。
         const files = [
-            'index.html', 'style.css', 'core.js',
+            'index.html', 'style.css', 'core.js', 'ui-workspace.js', 'ui-workspace.css',
             'modules/builder-module.js', 'modules/calc-module.js',
             'modules/extract-module.js', 'modules/image-pad.js',
             'modules/news-module.js', 'modules/pingjie-module.js',
@@ -88,47 +92,69 @@
     })();
     </script>
 </head>
-<body>
-<div class="container">
-    <div class="title">央视舆情模块化生成器</div>
+<body class="ui-workbench">
+<header class="ui-header">
+    <button id="uiNavTrigger" class="ui-icon-btn" aria-label="打开功能导航" aria-expanded="false">☰</button>
+    <div class="ui-brand"><span class="ui-brand-logo">▣</span><strong>央视舆情模块化生成器</strong></div>
+    <div class="ui-header-desc">舆情监测 · 内容解析 · 模板生成</div>
+    <div class="ui-header-spacer"></div>
+    <span class="ui-header-status">● 本地工作台</span>
+    <button id="uiSettingsTrigger" class="ui-header-settings" aria-expanded="false">⚙ 组件设置</button>
+</header>
 
-    <div class="calc-panel" id="calcPanel">
-        <div class="calc-card" id="sumModule"></div>
-        <div class="calc-card" id="segmentModule"></div>
-        <div class="calc-card" id="diffModule"></div>
-    </div>
+<div id="uiLeftBackdrop" class="ui-backdrop"></div>
+<nav id="uiLeftDrawer" class="ui-left-drawer" aria-label="功能导航" aria-hidden="true">
+    <div class="ui-drawer-title"><strong>功能导航</strong><button id="uiNavClose" class="ui-icon-btn" aria-label="收起导航">×</button></div>
+    <div class="ui-nav-section">核心工作模式</div>
+    <div class="tab-main" id="mainTabs"><span data-m="richang" class="active">日常</span><span data-m="quantao">全套监测</span></div>
+    <div class="ui-nav-section">监测类别</div>
+    <div class="tab-sub" id="yuqingTab"><span class="active" data-s="yuqing">舆情</span><span data-s="zhengmian">正面</span></div>
+    <div class="ui-nav-section">更多工具</div>
+    <button id="uiTimeToolsBtn" class="ui-nav-action">◷ 时间累加器 / 时间差计算</button>
+    <div class="ui-nav-hint">自定义模板可在导航栏右键管理；其他模块沿用原有功能。</div>
+</nav>
 
-    <div class="tab-main" id="mainTabs">
-        <span data-m="richang" class="active">日常</span>
-        <span data-m="quantao">全套监测</span>
-        <span data-m="pingjie">📝 内容拼接</span>
-        <span data-m="reader">📖 文本阅读</span>
-    </div>
+<div id="uiWorkspace" class="ui-workspace">
+    <main class="container" id="uiMainContent">
+        <div class="ui-workspace-intro"><div><span class="ui-eyebrow">工作台</span><h1 id="uiCurrentSection">日常监测</h1></div><span class="ui-category-tag" id="uiCurrentCategory">舆情</span></div>
+        <div class="ui-mode-cards" id="uiModeCards">
+            <button class="ui-mode-card is-active" data-ui-mode="richang" aria-pressed="true"><span class="ui-mode-symbol">◫</span><span><strong>日常</strong><small>单次监测 · 快速生成</small></span></button>
+            <button class="ui-mode-card" data-ui-mode="quantao" aria-pressed="false"><span class="ui-mode-symbol">▱</span><span><strong>全套监测</strong><small>多环节 · 全流程监测</small></span></button>
+        </div>
 
-    <div class="tab-sub" id="yuqingTab">
-        <span class="active" data-s="yuqing">舆情</span>
-        <span data-s="zhengmian">正面</span>
-    </div>
+        <div class="ui-utility-container" id="uiUtilityContainer"><h2 id="uiUtilityTitle">时间工具</h2>
+            <div class="calc-panel" id="calcPanel"><div class="calc-card" id="sumModule"></div><div class="calc-card" id="segmentModule"></div><div class="calc-card" id="diffModule"></div></div>
+        </div>
 
-    <div class="tool-bar" id="toolBar">
-        <button class="btn btn-warning normal-tool" id="editBtn">🔧 开启编辑模式</button>
-        <button class="btn btn-dark normal-tool" id="saveDefaultBtn">💾 设为默认配置</button>
-        <button class="btn btn-danger normal-tool" id="resetBtn">🔄 恢复初始配置</button>
-        <button class="btn btn-dark" id="clearAllBtn" style="background:#8c8c8c;">🧹 清空所有内容</button>
-    </div>
+        <div id="uiBusinessWorkspace">
+            <div class="ui-module-surface">
+                <div id="moduleContainer"><p style="text-align:center;padding:40px;color:#999;">正在加载...</p></div>
+                <div class="copy-btn-group" id="copyBtns"><button class="btn btn-primary" id="copyTipBtn">📋 复制【提示】整段</button><button class="btn btn-success" id="copyAddBtn">📋 复制【补充】整段</button></div>
+                <div class="preview-block" id="previewAll"></div>
+            </div>
+        </div>
+    </main>
 
-    <div id="moduleContainer">
-        <p style="text-align:center;padding:40px;color:#999;">正在加载...</p>
-    </div>
-
-    <div class="copy-btn-group" id="copyBtns">
-        <button class="btn btn-primary" id="copyTipBtn">📋 复制【提示】整段</button>
-        <button class="btn btn-success" id="copyAddBtn">📋 复制【补充】整段</button>
-    </div>
-
-    <div class="preview-block" id="previewAll"></div>
+    <aside class="ui-right-dock" aria-label="随手工具">
+        <button id="uiRailSettings" class="ui-dock-action" aria-label="组件设置" title="组件设置">⚙</button>
+    </aside>
+    <section id="uiSettingsPanel" class="ui-settings-panel" hidden>
+        <div class="ui-panel-header"><strong>组件设置</strong><button class="ui-icon-btn" id="uiSettingsClose" aria-label="关闭设置">×</button></div>
+        <div class="ui-panel-body">
+            <h3>编辑与配置</h3>
+            <div class="tool-bar" id="toolBar">
+                <button class="btn btn-warning normal-tool" id="editBtn">🔧 开启编辑模式</button>
+                <button class="btn btn-dark normal-tool" id="saveDefaultBtn">💾 设为默认配置</button>
+                <button class="btn btn-danger normal-tool" id="resetBtn">🔄 恢复初始配置</button>
+                <button class="btn btn-dark" id="clearAllBtn">🧹 清空所有内容</button>
+            </div>
+            <h3>显示设置</h3>
+            <label class="ui-switch-label"><span>显示随手记入口</span><input type="checkbox" id="uiShowScratchpad" checked></label>
+            <label class="ui-switch-label"><span>显示图片暂存板入口</span><input type="checkbox" id="uiShowImagepad" checked></label>
+            <p class="ui-panel-note">隐藏入口不会删除已有笔记或图片。打开小窗时，主工作区自动让出空间；全屏方式保持不变。</p>
+        </div>
+    </section>
 </div>
-
-
+<script src="ui-workspace.js" defer></script>
 </body>
 </html>
