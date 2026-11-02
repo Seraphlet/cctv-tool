@@ -99,6 +99,7 @@
     <div class="ui-header-desc">舆情监测 · 内容解析 · 模板生成</div>
     <div class="ui-header-spacer"></div>
     <span class="ui-header-status">● 本地工作台</span>
+    <div class="ui-live-clock" aria-label="当前时间"><span>当前时间</span><time id="uiCurrentClock">--:--:--</time></div>
     <button id="uiSettingsTrigger" class="ui-header-settings" aria-expanded="false">⚙ 组件设置</button>
 </header>
 
@@ -116,6 +117,17 @@
 
 <div id="uiWorkspace" class="ui-workspace">
     <main class="container" id="uiMainContent">
+        <div class="ui-quick-actions">
+            <div class="ui-category-switch" aria-label="监测类型">
+                <button type="button" data-ui-category="yuqing" class="is-active">舆情</button>
+                <button type="button" data-ui-category="zhengmian">正面</button>
+            </div>
+            <div class="ui-quick-action-buttons">
+                <button type="button" data-ui-shortcut="extract">▣ 解析</button>
+                <button type="button" data-ui-shortcut="pingjie">▤ 内容拼接</button>
+                <button type="button" id="uiQuickClear" class="ui-quick-clear">⌫ 清空内容</button>
+            </div>
+        </div>
         <div class="ui-workspace-intro"><div><span class="ui-eyebrow">工作台</span><h1 id="uiCurrentSection">日常监测</h1></div><span class="ui-category-tag" id="uiCurrentCategory">舆情</span></div>
         <div class="ui-mode-cards" id="uiModeCards">
             <button class="ui-mode-card is-active" data-ui-mode="richang" aria-pressed="true"><span class="ui-mode-symbol">◫</span><span><strong>日常</strong><small>单次监测 · 快速生成</small></span></button>
@@ -154,6 +166,18 @@
             <p class="ui-panel-note">隐藏入口不会删除已有笔记或图片。打开小窗时，主工作区自动让出空间；全屏方式保持不变。</p>
         </div>
     </section>
+</div>
+<div id="uiCategoryWelcome" class="ui-category-welcome" hidden role="dialog" aria-modal="true" aria-labelledby="uiWelcomeHeading">
+    <div class="ui-welcome-card"><button type="button" id="uiWelcomeDismiss" class="ui-welcome-close" aria-label="关闭">×</button>
+        <span class="ui-welcome-eyebrow">开始工作前</span>
+        <h2 id="uiWelcomeHeading">本次监测属于哪一类？</h2>
+        <p>仅在新打开页面时提示，后续可以随时切换。</p>
+        <div class="ui-welcome-choices">
+            <button type="button" data-ui-welcome="yuqing"><strong>舆情</strong><small>红色标识</small></button>
+            <button type="button" data-ui-welcome="zhengmian"><strong>正面</strong><small>绿色标识</small></button>
+        </div>
+        <button type="button" id="uiWelcomeSkip" class="ui-welcome-skip">暂不选择，继续使用</button>
+    </div>
 </div>
 <script src="ui-workspace.js" defer></script>
 </body>
