@@ -91,3 +91,7 @@ body[data-ui-category="zhengmian"] #copyTipBtn,body[data-ui-category="zhengmian"
 .ui-welcome-choices strong,.ui-welcome-choices small{display:block}.ui-welcome-choices strong{font-size:22px}.ui-welcome-choices small{font-size:12px;margin-top:7px}
 .ui-welcome-skip{display:block;border:0;background:transparent;margin:20px auto 0;color:#7b8ca5;cursor:pointer}
 @media(max-width:650px){.ui-live-clock span{display:none}.ui-live-clock time{font-size:12px}.ui-header{gap:7px}.ui-quick-actions{align-items:stretch}.ui-quick-action-buttons{width:100%}.ui-quick-action-buttons button{flex:1;padding:9px 7px}}
+
+/* 高频操作与原有模块的可用状态同步。 */
+.ui-other-module .ui-category-switch{display:none}
+body:has(#clearAllBtn[style*="display: none"]) #uiQuickClear{display:none}
