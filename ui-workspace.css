@@ -58,3 +58,36 @@ body:has(#scratchpadPanel.fullscreen) .ui-workspace,body:has(#imagepadPanel.full
 .ui-left-drawer .tab-sub[style*="display: block"]{display:flex!important}
 /* Small-window tools remain above the main workspace, but below fullscreen. */
 .ui-right-dock #scratchpadToggle,.ui-right-dock #imagepadToggle{z-index:auto!important}
+
+/* 高频入口、类型主题和复制成功反馈 */
+.ui-live-clock{display:flex;align-items:center;gap:9px;color:#63738d;font-size:12px;white-space:nowrap}
+.ui-live-clock time{font-variant-numeric:tabular-nums;font-weight:700;color:#235dbe;font-size:15px}
+.ui-quick-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 17px}
+.ui-category-switch,.ui-quick-action-buttons{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.ui-category-switch{padding:4px;background:#f0f4fa;border-radius:11px}
+.ui-category-switch button,.ui-quick-action-buttons button{border:1px solid #dce4ee;background:#fff;padding:10px 17px;border-radius:8px;color:#4b607c;cursor:pointer;font-size:13px;font-weight:600}
+.ui-category-switch button.is-active{background:#fef0f0;color:#c72e38;border-color:#f8b9c0}
+body[data-ui-category="zhengmian"] .ui-category-switch button.is-active{background:#e8f8ef;color:#13885b;border-color:#a5e7c5}
+.ui-quick-action-buttons button:hover{background:#eef4ff;color:#1b6de9}
+.ui-quick-action-buttons .ui-quick-clear{color:#c43b47;border-color:#f3c9cd;background:#fff5f5}
+.ui-category-tag{color:#c73543!important;background:#fff0f1!important}
+body[data-ui-category="zhengmian"] .ui-category-tag{color:#13885b!important;background:#e6f7ee!important}
+body[data-ui-category="yuqing"] #copyTipBtn,body[data-ui-category="yuqing"] #copyAddBtn{background:#cf424c}
+body[data-ui-category="zhengmian"] #copyTipBtn,body[data-ui-category="zhengmian"] #copyAddBtn{background:#119764}
+.yq-copy-feedback{position:fixed;z-index:2147482900;top:80px;left:50%;transform:translateX(-50%);width:min(510px,calc(100vw - 30px));padding:16px 19px;border-radius:14px;background:#fff;border:2px solid #ee7079;box-shadow:0 12px 40px #15365e31;color:#b62b37;animation:ui-copy-enter .18s ease}
+.yq-copy-feedback.is-zhengmian{border-color:#57c994;color:#108b5b}
+.yq-copy-feedback-head{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:16px}
+.yq-copy-feedback-head button{border:0;background:transparent;color:inherit;font-size:22px;cursor:pointer}
+.yq-copy-feedback-status{font-size:13px;margin-top:9px}
+.yq-copy-feedback-preview{font-size:12px;color:#54647b;margin-top:10px;line-height:1.6;max-height:62px;overflow:hidden;white-space:pre-wrap;word-break:break-all}
+@keyframes ui-copy-enter{from{opacity:0;transform:translate(-50%,-10px)}to{opacity:1;transform:translate(-50%,0)}}
+.ui-category-welcome:not([hidden]){position:fixed;inset:0;z-index:2147482950;display:flex;align-items:flex-start;justify-content:center;padding:clamp(100px,18vh,190px) 18px 30px;background:#102f584d}
+.ui-welcome-card{width:min(520px,100%);position:relative;padding:28px;background:#fff;border-radius:20px;box-shadow:0 18px 65px #1e355648}
+.ui-welcome-close{position:absolute;top:13px;right:16px;border:0;background:none;font-size:24px;color:#8292a7;cursor:pointer}
+.ui-welcome-eyebrow{font-size:12px;color:#6687c2}.ui-welcome-card h2{font-size:22px;margin:9px 0}.ui-welcome-card p{font-size:13px;color:#8390a4;margin-bottom:23px}
+.ui-welcome-choices{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.ui-welcome-choices button{border:1px solid #ecabb2;background:#fff0f2;border-radius:12px;padding:22px 12px;cursor:pointer;color:#bc3543}
+.ui-welcome-choices button+button{border-color:#abe4c6;background:#ecfaf3;color:#13865c}
+.ui-welcome-choices strong,.ui-welcome-choices small{display:block}.ui-welcome-choices strong{font-size:22px}.ui-welcome-choices small{font-size:12px;margin-top:7px}
+.ui-welcome-skip{display:block;border:0;background:transparent;margin:20px auto 0;color:#7b8ca5;cursor:pointer}
+@media(max-width:650px){.ui-live-clock span{display:none}.ui-live-clock time{font-size:12px}.ui-header{gap:7px}.ui-quick-actions{align-items:stretch}.ui-quick-action-buttons{width:100%}.ui-quick-action-buttons button{flex:1;padding:9px 7px}}
