@@ -1,6 +1,6 @@
 /**
  * yuqing-module.js - 日常/全套舆情生成器模块（完整版）
- * 包含所有功能：智能解析、字段映射、标点替换、编辑模式、审阅弹窗、Title预设、快捷格式化等
+ * 包含：智能解析、字段映射、标点替换、编辑模式、分类复制反馈、Title预设、快捷格式化等
  * 新增：全套模板“全文”后增加括号输入框（与“摘要”结构一致）
  */
 (function(window) {
@@ -26,8 +26,6 @@
             columns: ['朝闻天下', '共同关注', '新闻直播间', '正点财经', '天下财经','法治在线','经济信息联播', '中国法治观察']
         },
 
-        // 审阅开关（默认开启）
-        _reviewEnabled: true,
         // 标点替换模式：off / en / cn
         _punctuationMode: 'off',
         // 字段标签映射（用户自定义）
@@ -138,7 +136,6 @@
         _loadSettings() {
             const saved = this.App.api.storageGet('yuqing_settings');
             if (saved) {
-                this._reviewEnabled = saved.reviewEnabled !== undefined ? saved.reviewEnabled : true;
                 this._fieldLabelMap = saved.fieldLabelMap || {};
                 this._punctuationMode = saved.punctuationMode || 'off';
             }
@@ -146,7 +143,6 @@
 
         _saveSettings() {
             this.App.api.storageSet('yuqing_settings', {
-                reviewEnabled: this._reviewEnabled,
                 fieldLabelMap: this._fieldLabelMap,
                 punctuationMode: this._punctuationMode
             });
@@ -189,18 +185,52 @@
             return resultLines.join('\n');
         },
 
-        _copyText(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                this._showToast('已复制');
-            }).catch(() => {
+        // 复制成功后展示分类反馈，不再弹出确认/逐项审阅。
+        _showCopyFeedback(text, section) {
+            const keyword = this.App.state.currS === 'yuqing' ? '舆情' : '正面';
+            const sectionLabel = section === 'tip' ? '提示' : section === 'add' ? '补充' : '内容';
+            const notice = document.createElement('div');
+            notice.className = 'yq-copy-feedback ' + (keyword === '舆情' ? 'is-yuqing' : 'is-zhengmian');
+            notice.setAttribute('role', 'status');
+            notice.innerHTML =
+                '<div class="yq-copy-feedback-head"><strong></strong><button type="button" aria-label="关闭复制提示">×</button></div>' +
+                '<div class="yq-copy-feedback-status">✓ 已复制到剪贴板，无需再次确认</div>' +
+                '<div class="yq-copy-feedback-preview"></div>';
+            notice.querySelector('strong').textContent = '【央视' + keyword + sectionLabel + '】';
+            notice.querySelector('.yq-copy-feedback-preview').textContent = text.slice(0, 180);
+            document.querySelectorAll('.yq-copy-feedback').forEach(el => el.remove());
+            document.body.appendChild(notice);
+            const close = () => notice.remove();
+            notice.querySelector('button').addEventListener('click', close);
+            setTimeout(close, 3300);
+        },
+
+        async _copyText(text, section = '') {
+            if (!text || !text.trim()) {
+                this._showToast('没有可以复制的内容');
+                return;
+            }
+            try {
+                if (!navigator.clipboard || !navigator.clipboard.writeText) {
+                    throw new Error('Clipboard API 不可用');
+                }
+                await navigator.clipboard.writeText(text);
+            } catch (error) {
+                // 保留旧浏览器的复制回退方案，但检查是否实际成功。
                 const ta = document.createElement('textarea');
                 ta.value = text;
+                ta.style.cssText = 'position:fixed;left:-9999px;top:0;';
                 document.body.appendChild(ta);
                 ta.select();
-                document.execCommand('copy');
-                document.body.removeChild(ta);
-                this._showToast('已复制');
-            });
+                let copied = false;
+                try { copied = document.execCommand('copy'); }
+                finally { ta.remove(); }
+                if (!copied) {
+                    this._showToast('复制失败，请检查剪贴板权限');
+                    return;
+                }
+            }
+            this._showCopyFeedback(text, section);
         },
 
         // ========== 设置面板 ==========
@@ -223,10 +253,6 @@
 
             content.innerHTML = `
                 <h3 style="margin-bottom:15px;">设置</h3>
-                <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;">
-                    <span>复制前审阅</span>
-                    <label class="switch"><input type="checkbox" id="reviewSwitch" ${this._reviewEnabled?'checked':''}><span class="slider"></span></label>
-                </div>
                 <div style="margin-bottom:16px;">
                     <strong style="font-size:13px;">复制标点替换</strong>
                     <div style="margin-top:5px;">
@@ -245,22 +271,10 @@
                 <div style="text-align:right;">
                     <button class="btn btn-light" id="closeSettingsBtn">关闭</button>
                 </div>
-                <style>
-                    .switch { position:relative; display:inline-block; width:44px; height:24px; }
-                    .switch input { opacity:0; width:0; height:0; }
-                    .slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:#ccc; transition:.3s; border-radius:24px; }
-                    .slider:before { position:absolute; content:""; height:18px; width:18px; left:3px; bottom:3px; background-color:white; transition:.3s; border-radius:50%; }
-                    input:checked + .slider { background-color:#1677ff; }
-                    input:checked + .slider:before { transform:translateX(20px); }
-                </style>
             `;
             overlay.appendChild(content);
             document.body.appendChild(overlay);
 
-            content.querySelector('#reviewSwitch').addEventListener('change', (e) => {
-                this._reviewEnabled = e.target.checked;
-                this._saveSettings();
-            });
             content.querySelector('#punctModeSelect').addEventListener('change', (e) => {
                 this._punctuationMode = e.target.value;
                 this._saveSettings();
@@ -985,75 +999,24 @@
         },
 
         _showCopyConfirm(section) {
-            if (!this._reviewEnabled) {
-                this.updatePreview();
-                const startIdx = this.lineList.findIndex(x => { if (section === 'tip') return x.includes('提示】'); else return x.includes('补充】'); });
-                let endIdx;
-                if (section === 'tip') { endIdx = this.lineList.findIndex((x, i) => i > startIdx && x.includes('补充】')); if (endIdx === -1) endIdx = this.lineList.length; }
-                else { endIdx = this.lineList.length; }
-                const fullText = this.lineList.slice(startIdx, endIdx).join('\n');
-                this._copyText(this._applyPunctuation(fullText));
+            // 沿用旧事件入口名称，去掉确认与审阅流程，点击直接复制。
+            this.updatePreview();
+            const startIdx = this.lineList.findIndex(line =>
+                line.includes(section === 'tip' ? '提示】' : '补充】')
+            );
+            if (startIdx < 0) {
+                this._showToast(section === 'tip' ? '未找到【提示】内容' : '未找到【补充】内容');
                 return;
             }
-
-            this.updatePreview();
-            const keyword = this.App.state.currS === 'yuqing' ? '舆情' : '正面';
-            const sectionLabel = section === 'tip' ? '提示' : '补充';
-            const typeColor = keyword === '舆情' ? '#f53f3f' : '#009e5f';
-            const confirmButtonText = `确认，开始审阅${keyword}`;
-
-            const startIdx = this.lineList.findIndex(x => { if (section === 'tip') return x.includes('提示】'); else return x.includes('补充】'); });
-            let endIdx;
-            if (section === 'tip') { endIdx = this.lineList.findIndex((x, i) => i > startIdx && x.includes('补充】')); if (endIdx === -1) endIdx = this.lineList.length; }
-            else { endIdx = this.lineList.length; }
+            let endIdx = this.lineList.length;
+            if (section === 'tip') {
+                const next = this.lineList.findIndex((line, index) =>
+                    index > startIdx && line.includes('补充】')
+                );
+                if (next >= 0) endIdx = next;
+            }
             const fullText = this.lineList.slice(startIdx, endIdx).join('\n');
-
-            const rows = this.container.querySelectorAll(`.module-row[data-section="${section}"]`);
-            const fields = [];
-            const focusLabels = ['频道', '栏目', '标题', '内容', '摘要', '全文', '播出时间', '新闻时长', '露出时长'];
-
-            rows.forEach(row => {
-                const fixFirst = row.querySelector('.fix-text');
-                if (fixFirst && fixFirst.innerText && (fixFirst.innerText.includes('提示】') || fixFirst.innerText.includes('补充】'))) return;
-                let labelText = '', valueText = '';
-                row.querySelectorAll('.mod-item').forEach(item => { const f = item.querySelector('.fix-text'), inp = item.querySelector('input'), ta = item.querySelector('textarea'); if (f) labelText += f.innerText; if (inp) valueText += inp.value; if (ta) valueText += ta.value; });
-                if (labelText && valueText !== undefined) { let cleanLabel = labelText.replace(/[：:]/g,'').trim(); if (fields.some(f => f.label === cleanLabel)) return; const isEmpty = !valueText.trim(); const isFocus = focusLabels.some(fl => cleanLabel.startsWith(fl)); let specialCheck = ''; if (cleanLabel.startsWith('播出时间')) { const dateMatch = valueText.match(/^(\d{8})/); if (dateMatch) { specialCheck = dateMatch[1] === this.App.api.getCurrentDateStr() ? '✅ 日期为今天' : '⚠️ 日期不是今天'; } } fields.push({ label: cleanLabel, value: valueText.trim(), isEmpty, isFocus, specialCheck }); }
-            });
-
-            const newsTime = fields.find(f => f.label === '新闻时长'), exposeTime = fields.find(f => f.label === '露出时长');
-            if (newsTime && exposeTime) { const nv = newsTime.value.replace(/['\"]/g,''), ev = exposeTime.value.replace(/['\"]/g,''); if (nv && ev) { const equal = nv === ev; newsTime.specialCheck = equal ? '✅ 与露出时长相等' : '⚠️ 与露出时长不相等'; exposeTime.specialCheck = equal ? '✅ 与新闻时长相等' : '⚠️ 与新闻时长不相等'; } }
-
-            if (fields.length === 0) { this._showToast('⚠️ 没有可审阅的字段'); return; }
-
-            let step = 'confirm', currentIndex = 0;
-            document.querySelectorAll('[data-yq-copy-overlay]').forEach(o => o.remove());
-            const overlay = document.createElement('div');
-            overlay.setAttribute('data-yq-copy-overlay', '1');
-            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
-            const modalContent = document.createElement('div');
-            modalContent.style.cssText = 'background:#fff;color-scheme:light only;border-radius:12px;padding:24px;max-width:900px;width:95%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 30px rgba(0,0,0,0.25);';
-            overlay.appendChild(modalContent);
-            document.body.appendChild(overlay);
-            overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
-
-            const renderConfirm = () => {
-                modalContent.innerHTML = `<div style="text-align:center;margin-bottom:20px;"><span style="font-size:18px;font-weight:bold;color:${typeColor};">【央视${keyword}${sectionLabel}】</span></div><div style="margin-bottom:20px;padding:12px;background:#f8f8f8;border-radius:6px;white-space:pre-wrap;font-size:13px;line-height:1.6;max-height:300px;overflow-y:auto;">${fullText}</div><div style="text-align:center;color:#666;margin-bottom:20px;">请确认类型是否正确？</div><div style="display:flex;gap:10px;justify-content:center;"><button class="btn btn-light" id="cancelConfirmBtn">取消</button><button class="btn" id="startReviewBtn" style="background:${typeColor};color:#fff;padding:6px 14px;border:none;border-radius:4px;cursor:pointer;font-size:13px;">${confirmButtonText}</button></div>`;
-                modalContent.querySelector('#cancelConfirmBtn').addEventListener('click', () => overlay.remove());
-                modalContent.querySelector('#startReviewBtn').addEventListener('click', () => { step = 'review'; renderReview(); });
-            };
-
-            const renderReview = () => {
-                modalContent.innerHTML = `<div style="text-align:center;margin-bottom:16px;"><span style="font-size:18px;font-weight:bold;color:${typeColor};">【央视${keyword}${sectionLabel}】 - 审阅</span></div><div style="display:flex;gap:20px;"><div style="flex:1;min-width:200px;padding:10px;background:#f8f8f8;border-radius:6px;white-space:pre-wrap;font-size:13px;line-height:1.6;max-height:50vh;overflow-y:auto;">${fullText}</div><div style="flex:1;min-width:250px;"><div id="fieldDetail" style="min-height:100px;"></div><div style="display:flex;justify-content:space-between;margin-top:20px;"><div><button class="btn btn-light" id="prevFieldBtn" disabled>◀ 上一项</button><button class="btn btn-light" id="nextFieldBtn">下一项 ▶</button></div><div><button class="btn btn-light" id="cancelCopyBtn">✗ 返回修改</button><button class="btn" id="confirmCopyBtn" style="background:${typeColor};color:#fff;padding:6px 14px;border:none;border-radius:4px;cursor:pointer;font-size:13px;">✓ 确认复制</button></div></div></div></div>`;
-                const fieldDiv = modalContent.querySelector('#fieldDetail'), prevBtn = modalContent.querySelector('#prevFieldBtn'), nextBtn = modalContent.querySelector('#nextFieldBtn'), cancelBtn = modalContent.querySelector('#cancelCopyBtn'), confirmBtn = modalContent.querySelector('#confirmCopyBtn');
-                const renderField = (index) => { const f = fields[index]; const isEmptyClass = f.isEmpty ? 'background:#fff2f0;' : ''; const focusMark = f.isFocus ? ' 🔍' : ''; const specialMsg = f.specialCheck ? `<div style="font-size:12px;margin-top:4px;color:${f.specialCheck.startsWith('✅')?'#009e5f':'#f53f3f'};">${f.specialCheck}</div>` : ''; let valueDisplay; if (f.isEmpty) { valueDisplay = '<span style="color:#f53f3f;">⚠️ 未填写</span>'; } else if (f.label.startsWith('播出时间')) { const match = f.value.match(/^(\d{4})(\d{2})(\d{2})\s+(\d{2}):(\d{2}):(\d{2})\s*-\s*(\d{2}):(\d{2}):(\d{2})/); if (match) { valueDisplay = `<div style="font-size:13px;line-height:1.8;"><div>📅 日期：${match[1]}-${match[2]}-${match[3]}</div><div>⏰ 开始：${match[4]}:${match[5]}:${match[6]}</div><div>⏰ 结束：${match[7]}:${match[8]}:${match[9]}</div></div>`; } else { valueDisplay = `<span style="color:#333;">${f.value}</span>`; } } else { valueDisplay = `<span style="color:#333;">${f.value}</span>`; } return `<div style="margin-bottom:12px;padding:10px;border:1px solid #eee;border-radius:8px;${isEmptyClass}"><div style="font-size:12px;color:#999;margin-bottom:4px;">字段 ${index+1}/${fields.length}</div><div style="font-weight:bold;font-size:15px;margin-bottom:6px;">${f.label}${focusMark}</div><div>${valueDisplay}</div>${specialMsg}</div>`; };
-                const updateField = () => { fieldDiv.innerHTML = renderField(currentIndex); prevBtn.disabled = currentIndex === 0; nextBtn.disabled = currentIndex === fields.length - 1; }; updateField();
-                prevBtn.addEventListener('click', () => { if (currentIndex > 0) { currentIndex--; updateField(); } });
-                nextBtn.addEventListener('click', () => { if (currentIndex < fields.length - 1) { currentIndex++; updateField(); } });
-                cancelBtn.addEventListener('click', () => overlay.remove());
-                confirmBtn.addEventListener('click', () => { overlay.remove(); this._copyText(this._applyPunctuation(fullText)); });
-            };
-
-            renderConfirm();
+            this._copyText(this._applyPunctuation(fullText), section);
         },
 
         syncUIData() {
