@@ -258,6 +258,68 @@
             updateModeAndSection();
         });
 
+        // 高频操作通过原有标签/按钮触发，避免复制业务逻辑。
+        document.querySelectorAll('[data-ui-shortcut]').forEach(button => {
+            button.addEventListener('click', () => switchToMode(button.dataset.uiShortcut));
+        });
+        $('#uiQuickClear').addEventListener('click', () => {
+            const original = $('#clearAllBtn');
+            if (original && original.style.display !== 'none') original.click();
+        });
+
+        // 类别按钮只使用 core.js 原始的子标签事件。
+        function applyCategoryVisuals() {
+            const selected = window.App.state.currS === 'zhengmian' ? 'zhengmian' : 'yuqing';
+            body.dataset.uiCategory = selected;
+            document.querySelectorAll('[data-ui-category]').forEach(button =>
+                button.classList.toggle('is-active', button.dataset.uiCategory === selected)
+            );
+            const label = selected === 'zhengmian' ? '正面' : '舆情';
+            $('#uiCurrentCategory').textContent = label;
+            $('#uiQuickClear').title = '清空当前页面内容';
+            $('#copyTipBtn').textContent = '📋 复制【' + label + '提示】整段';
+            $('#copyAddBtn').textContent = '📋 复制【' + label + '补充】整段';
+        }
+        function chooseCategory(value) {
+            const tab = subTabs.querySelector('span[data-s="' + value + '"]');
+            if (tab) tab.click();
+            applyCategoryVisuals();
+        }
+        document.querySelectorAll('[data-ui-category]').forEach(button =>
+            button.addEventListener('click', () => chooseCategory(button.dataset.uiCategory))
+        );
+        subTabs.addEventListener('click', () => applyCategoryVisuals());
+        window.App.EventBus.on('tabChange', applyCategoryVisuals);
+        applyCategoryVisuals();
+
+        // 每次新建页面实例只弹出一次；不写入 localStorage/sessionStorage。
+        const welcome = $('#uiCategoryWelcome');
+        const dismissWelcome = () => { welcome.hidden = true; };
+        document.querySelectorAll('[data-ui-welcome]').forEach(button =>
+            button.addEventListener('click', () => {
+                chooseCategory(button.dataset.uiWelcome);
+                dismissWelcome();
+            })
+        );
+        $('#uiWelcomeDismiss').addEventListener('click', dismissWelcome);
+        $('#uiWelcomeSkip').addEventListener('click', dismissWelcome);
+        welcome.addEventListener('click', (event) => {
+            if (event.target === welcome) dismissWelcome();
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !welcome.hidden) dismissWelcome();
+        });
+        welcome.hidden = false;
+
+        // 与用户浏览器本地时间保持一致，不影响计算器与数据处理。
+        const clock = $('#uiCurrentClock');
+        const renderClock = () => {
+            clock.textContent = new Date().toLocaleTimeString('zh-CN', { hour12: false,
+                hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        };
+        renderClock();
+        setInterval(renderClock, 1000);
+
         updateModeAndSection();
         const activeSub = subTabs.querySelector('span.active');
         $('#uiCurrentCategory').textContent = activeSub ? activeSub.textContent.trim() : '舆情';
