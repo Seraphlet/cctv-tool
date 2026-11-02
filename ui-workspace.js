@@ -6,6 +6,12 @@
     'use strict';
 
     const UI_STORAGE_KEY = 'cmswrap_ui_layout_v2';
+    const LINKS_STORAGE_KEY = 'cmswrap_quick_links_v1';
+    const DEFAULT_LINKS = [
+        { id: 'competitor', name: '友商竞品', url: 'https://doc.weixin.qq.com/sheet/e3_ALwAYwYsAAsCNVFexlQsRQfuIktLC?scode=AJEAIQdfAAoCn3bSKN&tab=BB08J2' },
+        { id: 'draft', name: '主动落稿', url: 'https://docs.qq.com/sheet/DRGhoUktVT0V5alRY?tab=jbarjb&nlc=1' },
+        { id: 'cctv', name: 'CCTV', url: 'https://tv.cctv.com/' }
+    ];
     const $ = (selector) => document.querySelector(selector);
 
     function initWorkspaceUI() {
@@ -21,6 +27,8 @@
         const settingsPanel = $('#uiSettingsPanel');
         const settingsTrigger = $('#uiSettingsTrigger');
         const railSettings = $('#uiRailSettings');
+        const linksToggle = $('#uiLinksToggle');
+        const linksPanel = $('#uiLinksPanel');
         const settingsClose = $('#uiSettingsClose');
         const timeButton = $('#uiTimeToolsBtn');
         const modeButtons = Array.from(document.querySelectorAll('[data-ui-mode]'));
@@ -46,6 +54,7 @@
         }
 
         let settingsOpen = false;
+        let linksOpen = false;
         let utilityOpen = false;
         let leftOpen = false;
         let observedNote = null;
@@ -95,10 +104,13 @@
         function applyDockState() {
             const noteIsOpen = !!notePanel()?.classList.contains('show');
             const imageIsOpen = !!imagePanel()?.classList.contains('show');
-            const active = settingsOpen ? 'settings' : noteIsOpen ? 'note' : imageIsOpen ? 'image' : '';
+            const active = settingsOpen ? 'settings' : linksOpen ? 'links' : noteIsOpen ? 'note' : imageIsOpen ? 'image' : '';
             body.dataset.uiDock = active;
             body.classList.toggle('ui-dock-open', Boolean(active));
             settingsPanel.hidden = !settingsOpen;
+            linksPanel.hidden = !linksOpen;
+            linksToggle.setAttribute('aria-expanded', String(linksOpen));
+            linksToggle.classList.toggle('is-selected', active === 'links');
             settingsTrigger.setAttribute('aria-expanded', String(settingsOpen));
             railSettings.setAttribute('aria-expanded', String(settingsOpen));
             noteToggle()?.classList.toggle('is-selected', active === 'note');
@@ -108,6 +120,7 @@
 
         function openSettings(next) {
             settingsOpen = next;
+            if (next) linksOpen = false;
             if (settingsOpen) {
                 closeOtherFloatingPanel(null);
                 closeLeft();
@@ -117,10 +130,21 @@
 
         function toggleNoteOrImage(type) {
             settingsOpen = false;
+            linksOpen = false;
             if (type === 'note' && notePanel()?.classList.contains('show')) {
                 closeOtherFloatingPanel('note');
             } else if (type === 'image' && imagePanel()?.classList.contains('show')) {
                 closeOtherFloatingPanel('image');
+            }
+            applyDockState();
+        }
+
+        function openLinks(next) {
+            linksOpen = Boolean(next);
+            if (linksOpen) {
+                settingsOpen = false;
+                closeOtherFloatingPanel(null);
+                closeLeft();
             }
             applyDockState();
         }
@@ -147,8 +171,8 @@
             const note = noteToggle();
             const image = imageToggle();
             // 原悬浮按钮由 core.js 动态插入 body；只迁移按钮 DOM，不重建原事件。
-            if (note && note.parentElement !== rightDock) rightDock.insertBefore(note, railSettings);
-            if (image && image.parentElement !== rightDock) rightDock.insertBefore(image, railSettings);
+            if (note && note.parentElement !== rightDock) rightDock.insertBefore(note, linksToggle);
+            if (image && image.parentElement !== rightDock) rightDock.insertBefore(image, linksToggle);
 
             if (note && note.dataset.uiBound !== '1') {
                 note.dataset.uiBound = '1';
@@ -183,6 +207,13 @@
         settingsTrigger.addEventListener('click', () => openSettings(!settingsOpen));
         railSettings.addEventListener('click', () => openSettings(!settingsOpen));
         settingsClose.addEventListener('click', () => openSettings(false));
+        linksToggle.addEventListener('click', () => openLinks(!linksOpen));
+        $('#uiLinksClose').addEventListener('click', () => openLinks(false));
+        $('#uiHomeLogo').addEventListener('click', () => {
+            switchToMode('richang');
+            openSettings(false);
+            openLinks(false);
+        });
 
         showNoteCheckbox.addEventListener('change', () => {
             preferences.showScratchpad = showNoteCheckbox.checked;
@@ -273,6 +304,7 @@
             if (event.key !== 'Escape') return;
             if (leftOpen) closeLeft();
             if (settingsOpen) openSettings(false);
+            if (linksOpen) openLinks(false);
         });
 
         window.App.EventBus.on('tabChange', () => {
@@ -333,6 +365,124 @@
             if (event.key === 'Escape' && !welcome.hidden) dismissWelcome();
         });
         welcome.hidden = !preferences.showCategoryWelcome;
+
+        // 快捷网址：仅在本地浏览器保存，不影响业务模块与其他用户。
+        function validLink(nameInput, urlInput) {
+            const name = nameInput.trim(), raw = urlInput.trim();
+            if (!name || name.length > 40) throw new Error('名称需要 1–40 个字符');
+            if (!raw || raw.length > 2048) throw new Error('请输入有效的网址');
+            let url;
+            try { url = new URL(raw); } catch (_) { throw new Error('请输入完整的 http(s) 网址'); }
+            if (!['http:', 'https:'].includes(url.protocol) || !url.hostname)
+                throw new Error('仅支持 http:// 或 https:// 网址');
+            return { name, url: url.href };
+        }
+        function loadLinks() {
+            try {
+                const raw = localStorage.getItem(LINKS_STORAGE_KEY);
+                if (raw === null) return DEFAULT_LINKS.map(x => ({...x}));
+                const data = JSON.parse(raw);
+                if (!Array.isArray(data)) throw Error('不是列表');
+                return data.map(x => {
+                    if (!x || typeof x.id !== 'string') return null;
+                    try { return { id: x.id, ...validLink(String(x.name || ''), String(x.url || '')) }; }
+                    catch (_) { return null; }
+                }).filter(Boolean);
+            } catch (error) {
+                console.warn('[快捷网址] 读取失败，恢复初始列表', error);
+                return DEFAULT_LINKS.map(x => ({...x}));
+            }
+        }
+        let links = loadLinks(), editLinks = false, editingId = null;
+        const linksList = $('#uiLinksList'), linkForm = $('#uiLinkForm');
+        const nameField = $('#uiLinkName'), urlField = $('#uiLinkUrl');
+        const addButton = $('#uiLinksAdd'), editButton = $('#uiLinksEdit'), status = $('#uiLinksStatus');
+        function notify(text, error = false) {
+            status.textContent = text;
+            status.classList.toggle('is-error', error);
+        }
+        function persistLinks() {
+            try { localStorage.setItem(LINKS_STORAGE_KEY, JSON.stringify(links)); return true; }
+            catch (error) {
+                console.error('[快捷网址] 保存失败', error);
+                notify('保存失败，请检查浏览器存储权限', true);
+                return false;
+            }
+        }
+        function closeForm() { linkForm.hidden = true; linkForm.reset(); editingId = null; }
+        function openForm(link) {
+            editingId = link ? link.id : null;
+            nameField.value = link ? link.name : '';
+            urlField.value = link ? link.url : '';
+            linkForm.hidden = false;
+            nameField.focus();
+        }
+        function renderLinks() {
+            linksList.replaceChildren();
+            if (!links.length) {
+                const empty = document.createElement('p');
+                empty.className = 'ui-links-empty';
+                empty.textContent = '还没有网址，可以点击「添加网址」。';
+                linksList.append(empty);
+            }
+            for (const link of links) {
+                const row = document.createElement('div');
+                row.className = 'ui-link-row';
+                const a = document.createElement('a');
+                a.href = link.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+                a.title = link.url; a.className = 'ui-link-anchor';
+                const mark = document.createElement('span');
+                mark.className = 'ui-link-mark'; mark.textContent = '↗';
+                const label = document.createElement('span');
+                label.className = 'ui-link-name'; label.textContent = link.name;
+                a.append(mark, label); row.append(a);
+                if (editLinks) {
+                    const actions = document.createElement('div');
+                    actions.className = 'ui-link-actions';
+                    const edit = document.createElement('button');
+                    edit.type = 'button'; edit.textContent = '修改';
+                    edit.setAttribute('aria-label', '修改 ' + link.name);
+                    edit.addEventListener('click', () => openForm(link));
+                    const del = document.createElement('button');
+                    del.type = 'button'; del.textContent = '删除'; del.className = 'ui-link-delete';
+                    del.setAttribute('aria-label', '删除 ' + link.name);
+                    del.addEventListener('click', () => {
+                        if (!window.confirm('删除「' + link.name + '」？')) return;
+                        const prev = links;
+                        links = links.filter(x => x.id !== link.id);
+                        if (!persistLinks()) links = prev;
+                        else notify('网址已删除');
+                        if (editingId === link.id) closeForm();
+                        renderLinks();
+                    });
+                    actions.append(edit, del); row.append(actions);
+                }
+                linksList.append(row);
+            }
+            editButton.textContent = editLinks ? '完成编辑' : '编辑网址';
+            addButton.hidden = !editLinks;
+        }
+        editButton.addEventListener('click', () => {
+            editLinks = !editLinks;
+            closeForm();
+            notify('');
+            renderLinks();
+        });
+        addButton.addEventListener('click', () => { notify(''); openForm(null); });
+        $('#uiLinkCancel').addEventListener('click', closeForm);
+        linkForm.addEventListener('submit', event => {
+            event.preventDefault();
+            let value;
+            try { value = validLink(nameField.value, urlField.value); }
+            catch (error) { notify(error.message, true); return; }
+            const prev = links;
+            links = editingId
+                ? links.map(link => link.id === editingId ? {...link, ...value} : link)
+                : [...links, {id:'user-' + Date.now() + '-' + Math.random().toString(36).slice(2,7), ...value}];
+            if (!persistLinks()) { links = prev; return; }
+            closeForm(); renderLinks(); notify('保存成功');
+        });
+        renderLinks();
 
         // 与用户浏览器本地时间保持一致，不影响计算器与数据处理。
         const clock = $('#uiCurrentClock');

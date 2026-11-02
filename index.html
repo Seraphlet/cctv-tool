@@ -95,7 +95,7 @@
 <body class="ui-workbench">
 <header class="ui-header">
     <button id="uiNavTrigger" class="ui-icon-btn" aria-label="打开功能导航" aria-expanded="false">☰</button>
-    <div class="ui-brand"><span class="ui-brand-logo">▣</span><strong>央视舆情模块化生成器</strong></div>
+    <div class="ui-brand"><button type="button" class="ui-brand-logo ui-home-logo" id="uiHomeLogo" aria-label="返回日常工作台" data-tip="返回日常">▣</button><strong>央视舆情模块化生成器</strong></div>
     <div class="ui-header-desc">舆情监测 · 内容解析 · 模板生成</div>
     <div class="ui-header-spacer"></div>
     <span class="ui-header-status">● 本地工作台</span>
@@ -154,8 +154,23 @@
     </main>
 
     <aside class="ui-right-dock" aria-label="随手工具">
+        <button type="button" id="uiLinksToggle" class="ui-dock-action ui-links-toggle" aria-label="快捷网址" aria-expanded="false" title="快捷网址">🔗</button>
         <button id="uiRailSettings" class="ui-dock-action" aria-label="组件设置" title="组件设置">⚙</button>
     </aside>
+    <section id="uiLinksPanel" class="ui-links-panel" hidden aria-label="快捷网址">
+        <div class="ui-panel-header"><strong>快捷网址</strong><button type="button" id="uiLinksClose" class="ui-icon-btn" aria-label="关闭快捷网址">×</button></div>
+        <div class="ui-links-scroll">
+            <p class="ui-links-hint">常用网页 · 点击名称在新标签页打开</p>
+            <div id="uiLinksList" class="ui-links-list"></div>
+            <form id="uiLinkForm" class="ui-link-form" hidden>
+                <label for="uiLinkName">名称</label><input id="uiLinkName" type="text" maxlength="40" required placeholder="网址名称" autocomplete="off">
+                <label for="uiLinkUrl">URL</label><input id="uiLinkUrl" type="url" maxlength="2048" required placeholder="https://..." autocomplete="off">
+                <div class="ui-link-form-actions"><button type="button" id="uiLinkCancel">取消</button><button type="submit" class="ui-link-primary">保存</button></div>
+            </form>
+            <p id="uiLinksStatus" class="ui-links-status" role="status" aria-live="polite"></p>
+        </div>
+        <div class="ui-links-footer"><button type="button" id="uiLinksEdit">编辑网址</button><button type="button" id="uiLinksAdd" hidden>＋ 添加网址</button></div>
+    </section>
     <section id="uiSettingsPanel" class="ui-settings-panel" hidden>
         <div class="ui-panel-header"><strong>组件设置</strong><button class="ui-icon-btn" id="uiSettingsClose" aria-label="关闭设置">×</button></div>
         <div class="ui-panel-body">
