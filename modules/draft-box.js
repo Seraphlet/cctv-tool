@@ -198,6 +198,16 @@ function init(){
     window.TempDraftBox={saveCurrent,getActiveId:()=>activeId,restore,prune};
     window.setInterval(()=>{prune();render();},60*1000);
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
-else init();
+function boot(){
+    if(window.App&&$('#uiDraftPanel'))init();
+    else{
+        let n=0;
+        const timer=setInterval(()=>{
+            if(window.App&&$('#uiDraftPanel')){clearInterval(timer);init();}
+            else if(++n>=60)clearInterval(timer);
+        },100);
+    }
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
+else boot();
 })(window,document);

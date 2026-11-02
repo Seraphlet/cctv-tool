@@ -32,7 +32,7 @@
             'modules/builder-module.js', 'modules/calc-module.js',
             'modules/extract-module.js', 'modules/image-pad.js',
             'modules/news-module.js', 'modules/pingjie-module.js',
-            'modules/quickboard-module.js', 'modules/schedule-import.js', 'modules/reader-module.js',
+            'modules/quickboard-module.js', 'modules/schedule-import.js', 'modules/draft-box.js', 'modules/reader-module.js',
             'modules/reminder-module.js', 'modules/scratchpad-module.js',
             'modules/yuqing-module.js'
         ];
@@ -131,6 +131,7 @@
             <div class="ui-quick-action-buttons">
                 <button type="button" data-ui-shortcut="extract">▣ 解析</button>
                 <button type="button" data-ui-shortcut="pingjie">▤ 内容拼接</button>
+                <button type="button" id="uiSaveDraft" class="ui-save-draft">▣ 保存为草稿</button>
                 <button type="button" id="uiQuickClear" class="ui-quick-clear">⌫ 清空内容</button>
             </div>
         </div>
@@ -154,9 +155,16 @@
     </main>
 
     <aside class="ui-right-dock" aria-label="随手工具">
+        <button type="button" id="uiDraftToggle" class="ui-dock-action ui-draft-toggle" title="临时草稿箱" aria-expanded="false">▣</button>
         <button type="button" id="uiLinksToggle" class="ui-dock-action ui-links-toggle" aria-label="快捷网址" aria-expanded="false" title="快捷网址">🔗</button>
         <button id="uiRailSettings" class="ui-dock-action" aria-label="组件设置" title="组件设置">⚙</button>
     </aside>
+    <section id="uiDraftPanel" class="ui-draft-panel" hidden aria-label="临时草稿箱">
+        <div class="ui-panel-header"><strong>临时草稿箱 <span id="uiDraftCount">0/5</span></strong><button type="button" id="uiDraftClose" class="ui-icon-btn">×</button></div>
+        <p class="ui-draft-hint">当前标签页有效 · 最多 5 份 · 保存后 24 小时过期</p>
+        <div id="uiDraftList" class="ui-draft-list"></div>
+        <div id="uiDraftStatus" class="ui-draft-status" role="status"></div>
+    </section>
     <section id="uiLinksPanel" class="ui-links-panel" hidden aria-label="快捷网址">
         <div class="ui-panel-header"><strong>快捷网址</strong><button type="button" id="uiLinksClose" class="ui-icon-btn" aria-label="关闭快捷网址">×</button></div>
         <div class="ui-links-scroll">
@@ -205,5 +213,6 @@
     </div>
 </div>
 <script src="ui-workspace.js" defer></script>
+<script src="modules/draft-box.js" defer></script>
 </body>
 </html>

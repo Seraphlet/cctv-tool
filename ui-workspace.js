@@ -29,6 +29,8 @@
         const railSettings = $('#uiRailSettings');
         const linksToggle = $('#uiLinksToggle');
         const linksPanel = $('#uiLinksPanel');
+        const draftPanel = $('#uiDraftPanel');
+        const draftToggle = $('#uiDraftToggle');
         const settingsClose = $('#uiSettingsClose');
         const timeButton = $('#uiTimeToolsBtn');
         const modeButtons = Array.from(document.querySelectorAll('[data-ui-mode]'));
@@ -55,6 +57,7 @@
 
         let settingsOpen = false;
         let linksOpen = false;
+        let draftOpen = false;
         let utilityOpen = false;
         let leftOpen = false;
         let observedNote = null;
@@ -104,11 +107,13 @@
         function applyDockState() {
             const noteIsOpen = !!notePanel()?.classList.contains('show');
             const imageIsOpen = !!imagePanel()?.classList.contains('show');
-            const active = settingsOpen ? 'settings' : linksOpen ? 'links' : noteIsOpen ? 'note' : imageIsOpen ? 'image' : '';
+            const active = settingsOpen ? 'settings' : draftOpen ? 'draft' : linksOpen ? 'links' : noteIsOpen ? 'note' : imageIsOpen ? 'image' : '';
             body.dataset.uiDock = active;
             body.classList.toggle('ui-dock-open', Boolean(active));
             settingsPanel.hidden = !settingsOpen;
             linksPanel.hidden = !linksOpen;
+            draftPanel.hidden = !draftOpen;
+            draftToggle.setAttribute('aria-expanded',String(draftOpen));
             linksToggle.setAttribute('aria-expanded', String(linksOpen));
             linksToggle.classList.toggle('is-selected', active === 'links');
             settingsTrigger.setAttribute('aria-expanded', String(settingsOpen));
@@ -120,7 +125,7 @@
 
         function openSettings(next) {
             settingsOpen = next;
-            if (next) linksOpen = false;
+            if (next) { linksOpen = false; draftOpen = false; }
             if (settingsOpen) {
                 closeOtherFloatingPanel(null);
                 closeLeft();
@@ -131,6 +136,7 @@
         function toggleNoteOrImage(type) {
             settingsOpen = false;
             linksOpen = false;
+            draftOpen = false;
             if (type === 'note' && notePanel()?.classList.contains('show')) {
                 closeOtherFloatingPanel('note');
             } else if (type === 'image' && imagePanel()?.classList.contains('show')) {
@@ -143,12 +149,19 @@
             linksOpen = Boolean(next);
             if (linksOpen) {
                 settingsOpen = false;
+                draftOpen = false;
                 closeOtherFloatingPanel(null);
                 closeLeft();
             }
             applyDockState();
         }
 
+        function openDrafts(next) {
+            draftOpen=Boolean(next);
+            if(draftOpen){ linksOpen=false;settingsOpen=false;closeOtherFloatingPanel(null);closeLeft(); }
+            applyDockState();
+        }
+        window.TempDraftUI={open:openDrafts};
         function syncToolVisibility() {
             showNoteCheckbox.checked = preferences.showScratchpad;
             showImageCheckbox.checked = preferences.showImagepad;
@@ -208,6 +221,11 @@
         railSettings.addEventListener('click', () => openSettings(!settingsOpen));
         settingsClose.addEventListener('click', () => openSettings(false));
         linksToggle.addEventListener('click', () => openLinks(!linksOpen));
+        draftToggle.addEventListener('click', () => openDrafts(!draftOpen));
+        $('#uiDraftClose').addEventListener('click',()=>openDrafts(false));
+        document.addEventListener('pointerdown',e=>{
+            if(draftOpen&&!draftPanel.contains(e.target)&&!draftToggle.contains(e.target))openDrafts(false);
+        },true);
         document.addEventListener('pointerdown', (event) => {
             if (!linksOpen) return;
             if (linksPanel.contains(event.target) || linksToggle.contains(event.target)) return;
@@ -218,6 +236,7 @@
             switchToMode('richang');
             openSettings(false);
             openLinks(false);
+            openDrafts(false);
         });
 
         showNoteCheckbox.addEventListener('change', () => {
@@ -310,6 +329,7 @@
             if (leftOpen) closeLeft();
             if (settingsOpen) openSettings(false);
             if (linksOpen) openLinks(false);
+            if (draftOpen) openDrafts(false);
         });
 
         window.App.EventBus.on('tabChange', () => {
@@ -322,6 +342,7 @@
         document.querySelectorAll('[data-ui-shortcut]').forEach(button => {
             button.addEventListener('click', () => switchToMode(button.dataset.uiShortcut));
         });
+        $('#uiSaveDraft').addEventListener('click',()=>window.TempDraftBox?.saveCurrent());
         $('#uiQuickClear').addEventListener('click', () => {
             const original = $('#clearAllBtn');
             if (original && original.style.display !== 'none') original.click();

@@ -995,7 +995,14 @@
                 ['toggleEditMode', () => { this.App.state.editMode = !this.App.state.editMode; const btn = document.getElementById('editBtn'); if (btn) { btn.innerText = this.App.state.editMode ? '✅ 退出编辑模式' : '🔧 开启编辑模式'; btn.classList.toggle('btn-success', this.App.state.editMode); btn.classList.toggle('btn-warning', !this.App.state.editMode); } this.render(); this.updatePreview(); }],
                 ['saveDefault', () => { if (!confirm('确定将当前排版设为默认模板？')) return; this.syncUIData(); this.App.api.storageSet('main_richang', this.nowTemp); this.App.api.storageSet('main_quantao', this.nowTemp); this._showToast('✅ 已永久保存'); }],
                 ['resetConfig', () => { if (!confirm('确定恢复原始模板？（不会清除用户映射）')) return; this.App.api.storageRemove('main_richang'); this.App.api.storageRemove('main_quantao'); this.App.api.storageRemove('yuqing_presets'); this.presets = { channels: this._defaultPresets.channels.map(c => ({ ...c })), columns: this._defaultPresets.columns.slice() }; this._savePresets(); this._loadTemplate(); this.render(); this.updatePreview(); this._showToast('✅ 已恢复模板，字段映射保留'); }],
-                ['clearAll', () => { if (!confirm('确定清空所有文本框？')) return; this.container.querySelectorAll('.input-single, .time-h, .time-m, .time-s, .fix-edit').forEach(el => el.value = ''); this.container.querySelectorAll('.textarea-mod').forEach(el => el.value = ''); this.updatePreview(); }],
+                ['clearAll', () => {
+                    if (!confirm('确定清空所有文本框？')) return;
+                    const draftId=window.TempDraftBox?.getActiveId()||null;
+                    this.container.querySelectorAll('.input-single, .time-h, .time-m, .time-s, .fix-edit').forEach(el=>el.value='');
+                    this.container.querySelectorAll('.textarea-mod').forEach(el=>el.value='');
+                    this.updatePreview();
+                    this.App.EventBus.emit('contentCleared',{draftId});
+                }],
                 ['copyTip', () => { this._showCopyConfirm('tip'); }],
                 ['copyAdd', () => { this._showCopyConfirm('add'); }],
                 ['resetAll', () => { if (!confirm('确定恢复全部默认设置？')) return; this._fieldLabelMap = {}; this._punctuationMode = 'off'; this._saveSettings(); this.App.api.storageRemove('main_richang'); this.App.api.storageRemove('main_quantao');this.App.api.storageRemove('yuqing_presets');this._loadPresets();this._loadTemplate(); this.render(); this.updatePreview(); this._showToast('✅ 已完全恢复默认'); }]
