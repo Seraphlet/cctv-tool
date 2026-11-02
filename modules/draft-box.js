@@ -85,7 +85,11 @@ function saveSnapshot(snapshot,assignedId,announce){
     const next=existing?drafts.map(d=>d.id===id?value:d):[...drafts,value];
     if(!persist(next))return false;
     drafts=next;activeId=id;unboundDirty=false;render();
-    if(announce)feedback(existing?'已更新当前草稿':'已保存一份新草稿');
+    if(announce){
+        feedback(existing?'已更新当前草稿':'已保存一份新草稿');
+        // 复用原监测模块的轻提示（自动消失，无需确认）。
+        window.__modules?.richang?._showToast(existing?'✅ 草稿已更新':'✅ 草稿保存成功');
+    }
     return true;
 }
 function saveCurrent(){
