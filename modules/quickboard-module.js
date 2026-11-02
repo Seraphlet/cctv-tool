@@ -445,6 +445,7 @@
                             <option value="all" ${this.scheduleMode === 'all' ? 'selected' : ''}>显示全部</option>
                             <option value="current" ${this.scheduleMode === 'current' ? 'selected' : ''}>根据当前时间</option>
                         </select>
+                        <button id="importBulkScheduleBtn" class="btn qb-bulk-trigger">📥 整张班表导入</button>
                         <button id="importHeaderBtn" class="btn btn-light">📅 导入表头（日期）</button>
                         <button id="importRowBtn" class="btn btn-light">👤 导入行（班次）</button>
                         <button id="copyScheduleBtn" class="btn btn-light">📋 复制班表文本</button>
@@ -669,6 +670,28 @@
                     });
                 }
 
+                document.getElementById('importBulkScheduleBtn')?.addEventListener('click', async (event) => {
+                    const btn = event.currentTarget;
+                    btn.disabled = true;
+                    try {
+                        if (!window.QuickBoardBulkImport) {
+                            await new Promise((resolve, reject) => {
+                                const script = document.createElement('script');
+                                script.src = 'modules/schedule-import.js?v=' + Date.now();
+                                script.onload = resolve;
+                                script.onerror = () => reject(new Error('班表导入组件加载失败'));
+                                document.head.appendChild(script);
+                            });
+                        }
+                        window.QuickBoardBulkImport.open(table, this.db, result => {
+                            this.render();
+                            this._showToast('✅ 导入成功',
+                                '已保存 ' + result.rows.length + ' 人、' + result.dates + ' 个日期的班次');
+                        });
+                    } catch (error) {
+                        this._showToast('⚠️ 导入失败', error.message);
+                    } finally { btn.disabled = false; }
+                });
                 document.getElementById('importHeaderBtn')?.addEventListener('click', () => {
                     const raw = prompt('请粘贴一行日期（例如：7月1日\t7月2日\t...），将替换当前表头（保留姓名列）');
                     if (!raw) return;

@@ -144,3 +144,13 @@ body.ui-utility-active .ui-mode-card{min-height:67px}
 .ui-links-status{font-size:12px;color:#10855e;min-height:16px;margin-top:9px}
 .ui-links-status.is-error{color:#c63f4e}
 @media(max-width:1000px){.ui-links-panel{right:68px;box-shadow:0 10px 40px #23496a40}}
+
+/* 次级模块与时间工具不显示模式卡，左上角 Logo 仍可回日常 */
+body.ui-other-module .ui-mode-cards, body.ui-utility-active .ui-mode-cards {display:none!important}
+.qb-bulk-trigger{background:#eaf3ff!important;color:#175bc3!important;border:1px solid #c5d9fa!important}
+.qb-import-overlay{position:fixed;inset:0;z-index:2147481200;background:#10284477;display:flex;align-items:center;justify-content:center;padding:15px}
+.qb-import-dialog{width:min(840px,100%);max-height:90vh;overflow:auto;background:white;border-radius:15px;padding:22px;box-shadow:0 15px 45px #162b4d55}
+.qb-import-head{display:flex;justify-content:space-between;align-items:center}.qb-import-head h2{font-size:19px}.qb-import-close{border:0;background:#f2f6fb;padding:5px 11px;border-radius:7px;font-size:20px;cursor:pointer}
+.qb-import-hint{font-size:13px;color:#677b98;line-height:1.7;margin:12px 0}.qb-import-raw{display:block;width:100%;height:190px;resize:vertical;white-space:pre;border:1px solid #ccd9eb;border-radius:9px;padding:10px;font:12px/1.7 monospace}
+.qb-import-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}.qb-import-actions button,.qb-import-actions select{border:1px solid #cbd9ec;background:#f7faff;color:#36577d;border-radius:7px;padding:9px 12px;cursor:pointer}.qb-import-actions button.qb-import-primary{background:#276ff0;color:white;border-color:#276ff0}.qb-import-actions button:disabled{opacity:.5;cursor:not-allowed}
+.qb-import-status{font-size:13px;margin:12px 0;color:#187b5f;line-height:1.6}.qb-import-status.is-error{color:#cc3f50}.qb-import-preview{max-height:230px;overflow:auto;border:1px solid #e0e9f5;border-radius:9px}.qb-import-preview[hidden]{display:none!important}.qb-import-preview table{border-collapse:collapse;font-size:12px;width:100%}.qb-import-preview th,.qb-import-preview td{padding:7px;border:1px solid #e2eaf5;white-space:nowrap}.qb-import-preview th{background:#eef5ff}

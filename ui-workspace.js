@@ -208,6 +208,11 @@
         railSettings.addEventListener('click', () => openSettings(!settingsOpen));
         settingsClose.addEventListener('click', () => openSettings(false));
         linksToggle.addEventListener('click', () => openLinks(!linksOpen));
+        document.addEventListener('pointerdown', (event) => {
+            if (!linksOpen) return;
+            if (linksPanel.contains(event.target) || linksToggle.contains(event.target)) return;
+            openLinks(false);
+        }, true);
         $('#uiLinksClose').addEventListener('click', () => openLinks(false));
         $('#uiHomeLogo').addEventListener('click', () => {
             switchToMode('richang');
