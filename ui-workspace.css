@@ -170,3 +170,15 @@ body.ui-other-module .ui-mode-cards, body.ui-utility-active .ui-mode-cards {disp
 .ui-draft-status{font-size:12px;color:#178460;margin-top:12px}.ui-draft-status.is-error{color:#c43f4e}
 body.ui-other-module #uiSaveDraft,body.ui-utility-active #uiSaveDraft{display:none!important}
 @media(max-width:1000px){.ui-draft-panel{right:68px}}
+
+
+/* 速查表：结构化精确导入（Index / Columns / Data） */
+.qb-import-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.qb-import-tab{border:1px solid #d3e0f2;border-radius:9px;padding:9px 13px;background:#f6f9ff;color:#526c8d;font-size:13px;cursor:pointer}
+.qb-import-tab.is-active{background:#e7f0ff;color:#1c63cc;border-color:#a5c6fa;font-weight:650}
+.qb-import-structured[hidden],.qb-import-auto[hidden]{display:none!important}
+.qb-import-structured{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.qb-import-structured label{font-weight:600;font-size:13px;color:#425a78;margin-top:7px}
+.qb-import-structured textarea{height:90px;max-height:22vh}
+.qb-import-structured .qb-import-columns{height:52px;min-height:52px}
+.qb-import-structured .qb-import-data{height:145px;max-height:27vh}
