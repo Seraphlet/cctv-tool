@@ -10,7 +10,7 @@ const copy=value=>JSON.parse(JSON.stringify(value));
 const validMode=mode=>mode==='richang'||mode==='quantao';
 const validCategory=c=>c==='zhengmian'?'zhengmian':'yuqing';
 const store=window.sessionStorage;
-let drafts=[], activeId=null, working=false;
+let drafts=[], activeId=null, working=false, unboundDirty=false;
 const panel=$('#uiDraftPanel'),list=$('#uiDraftList'),counter=$('#uiDraftCount'),status=$('#uiDraftStatus');
 function feedback(message,error=false){
     if(!status)return;
@@ -84,7 +84,7 @@ function saveSnapshot(snapshot,assignedId,announce){
         createdAt:existing?.createdAt||now,updatedAt:now};
     const next=existing?drafts.map(d=>d.id===id?value:d):[...drafts,value];
     if(!persist(next))return false;
-    drafts=next;activeId=id;render();
+    drafts=next;activeId=id;unboundDirty=false;render();
     if(announce)feedback(existing?'已更新当前草稿':'已保存一份新草稿');
     return true;
 }
@@ -114,30 +114,37 @@ async function applySnapshot(snapshot){
 async function restore(id){
     if(working)return;
     prune();
-    const target=drafts.find(d=>d.id===id);
-    if(!target){notifyError('草稿已过期或已删除');render();return;}
-    if(id===activeId){
-        if(!saveCurrent())return;
-        feedback('当前已经是这份草稿，修改已暂存');
-        return;
-    }
+    const initialTarget=drafts.find(d=>d.id===id);
+    if(!initialTarget){notifyError('草稿已过期或已删除');render();return;}
+
     const prior=capture(),priorId=activeId;
-    // 切换顺序：先暂存当前现场；存储失败（或达到上限）则不切换。
-    if(prior&&!saveSnapshot(prior,activeId,false))return;
+    // 已绑定的草稿先更新。未绑定的表单只有被编辑过才占用新草稿位，
+    // 避免刚清空的空白表单、页面初始模板在“打开”时误创建草稿。
+    if(prior && (activeId || unboundDirty)){
+        if(!saveSnapshot(prior,activeId,false))return;
+    }
+    // 先保存、再重新取得目标对象：恢复“当前”ID 时也必须真正渲染到表单。
+    const target=drafts.find(d=>d.id===id);
+    if(!target){notifyError('目标草稿不存在');return;}
+
     working=true;
     try{
         await applySnapshot(target);
-        activeId=id;render();
-        feedback('已恢复「'+target.name+'」');
+        activeId=id;
+        unboundDirty=false;
+        render();
+        feedback('已打开「'+target.name+'」，内容已恢复到表单');
         window.TempDraftUI?.open(false);
     }catch(error){
         console.error('[临时草稿箱] 恢复失败',error);
         if(prior){
-            try{await applySnapshot(prior);activeId=priorId;}
-            catch(rollbackError){console.error('[临时草稿箱] 回退失败',rollbackError);}
+            try{
+                await applySnapshot(prior);
+                activeId=priorId;
+            }catch(rollbackError){console.error('[临时草稿箱] 回退失败',rollbackError);}
         }
         render();
-        notifyError('恢复失败，已尽力保留此前现场，请不要直接清空页面');
+        notifyError('恢复失败，已尽力保留此前表单内容');
     }finally{working=false;}
 }
 function remove(id){
@@ -152,14 +159,14 @@ function remove(id){
     render();feedback('草稿已删除，当前表单不受影响');
 }
 function syncCleared(detail){
-    const id=detail?.draftId;
-    if(!id||id!==activeId)return;
-    const existing=drafts.find(d=>d.id===id);
-    if(!existing)return;
-    const snapshot=capture();
-    if(!snapshot)return;
-    // 已在原模块确认清空；只更新相同 ID 的内容，其他草稿不变。
-    saveSnapshot(snapshot,id,true);
+    // clearAll 原事件已完成用户确认与表单清空。
+    // 清空前读取旧 ID，用来解除当前绑定；绝不把空白内容写回已存草稿。
+    const previousId=detail?.draftId||null;
+    if(previousId && previousId!==activeId)return;
+    activeId=null;
+    unboundDirty=false;
+    render();
+    feedback(previousId?'当前表单已清空，原草稿保留；下次保存会新建':'当前表单已清空，可以保存为新草稿');
 }
 function render(){
     if(!list)return;
@@ -184,7 +191,7 @@ function render(){
         info.append(name,meta);
         const actions=document.createElement('div');actions.className='ui-draft-controls';
         const open=document.createElement('button');open.type='button';
-        open.textContent=d.id===activeId?'暂存':'恢复';
+        open.textContent='打开';
         open.addEventListener('click',()=>restore(d.id));
         const del=document.createElement('button');del.type='button';del.className='ui-draft-delete';
         del.textContent='删除';del.addEventListener('click',()=>remove(d.id));
@@ -194,6 +201,16 @@ function render(){
 function init(){
     if(!$('#uiDraftPanel')||!window.App)return;
     load();
+    // 仅在新内容确实发生变化时，切换前才需要另存一份临时草稿。
+    document.getElementById('moduleContainer')?.addEventListener('input',()=>{
+        if(!activeId&&!working)unboundDirty=true;
+    });
+    document.getElementById('moduleContainer')?.addEventListener('change',()=>{
+        if(!activeId&&!working)unboundDirty=true;
+    });
+    document.getElementById('moduleContainer')?.addEventListener('click',event=>{
+        if(!activeId&&!working&&event.target.closest('#smartParseBtn'))unboundDirty=true;
+    },true);
     window.App.EventBus.on('contentCleared',syncCleared);
     window.TempDraftBox={saveCurrent,getActiveId:()=>activeId,restore,prune};
     window.setInterval(()=>{prune();render();},60*1000);
