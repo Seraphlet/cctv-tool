@@ -117,6 +117,12 @@
 
 <div id="uiWorkspace" class="ui-workspace">
     <main class="container" id="uiMainContent">
+        <div class="ui-workspace-intro"><div><span class="ui-eyebrow">工作台</span><h1 id="uiCurrentSection">日常监测</h1></div><span class="ui-category-tag" id="uiCurrentCategory">舆情</span></div>
+        <div class="ui-mode-cards" id="uiModeCards">
+            <button class="ui-mode-card is-active" data-ui-mode="richang" aria-pressed="true"><span class="ui-mode-symbol">◫</span><span><strong>日常</strong><small>单次监测 · 快速生成</small></span></button>
+            <button class="ui-mode-card" data-ui-mode="quantao" aria-pressed="false"><span class="ui-mode-symbol">▱</span><span><strong>全套监测</strong><small>多环节 · 全流程监测</small></span></button>
+        </div>
+
         <div class="ui-quick-actions">
             <div class="ui-category-switch" aria-label="监测类型">
                 <button type="button" data-ui-category="yuqing" class="is-active">舆情</button>
@@ -128,12 +134,6 @@
                 <button type="button" id="uiQuickClear" class="ui-quick-clear">⌫ 清空内容</button>
             </div>
         </div>
-        <div class="ui-workspace-intro"><div><span class="ui-eyebrow">工作台</span><h1 id="uiCurrentSection">日常监测</h1></div><span class="ui-category-tag" id="uiCurrentCategory">舆情</span></div>
-        <div class="ui-mode-cards" id="uiModeCards">
-            <button class="ui-mode-card is-active" data-ui-mode="richang" aria-pressed="true"><span class="ui-mode-symbol">◫</span><span><strong>日常</strong><small>单次监测 · 快速生成</small></span></button>
-            <button class="ui-mode-card" data-ui-mode="quantao" aria-pressed="false"><span class="ui-mode-symbol">▱</span><span><strong>全套监测</strong><small>多环节 · 全流程监测</small></span></button>
-        </div>
-
         <div class="ui-utility-container" id="uiUtilityContainer"><h2 id="uiUtilityTitle">时间工具</h2>
             <div class="calc-panel" id="calcPanel"><div class="calc-card" id="sumModule"></div><div class="calc-card" id="segmentModule"></div><div class="calc-card" id="diffModule"></div></div>
         </div>
@@ -145,6 +145,12 @@
                 <div class="preview-block" id="previewAll"></div>
             </div>
         </div>
+        <footer class="ui-project-notice" aria-label="项目维护公告">
+            <span class="ui-notice-label">项目公告</span>
+            <span>本工具后续不再更新，可继续使用当前版本；需要源码或旧版入口：</span>
+            <a href="https://github.com/Seraphlet/cctv-tool" target="_blank" rel="noopener noreferrer">GitHub 仓库</a>
+            <a href="https://noahanna.online/files/cctv-tool.bak/" target="_blank" rel="noopener noreferrer">旧版页面</a>
+        </footer>
     </main>
 
     <aside class="ui-right-dock" aria-label="随手工具">
@@ -163,6 +169,10 @@
             <h3>显示设置</h3>
             <label class="ui-switch-label"><span>显示随手记入口</span><input type="checkbox" id="uiShowScratchpad" checked></label>
             <label class="ui-switch-label"><span>显示图片暂存板入口</span><input type="checkbox" id="uiShowImagepad" checked></label>
+            <h3>交互提示</h3>
+            <label class="ui-switch-label"><span>新打开页面时提示选择舆情 / 正面</span><input type="checkbox" id="uiShowCategoryWelcome" checked></label>
+            <label class="ui-switch-label"><span>复制成功后显示分类提示</span><input type="checkbox" id="uiShowCopyFeedback" checked></label>
+            <p class="ui-panel-note">两项默认开启，关闭提示不会影响分类切换或内容复制。</p>
             <p class="ui-panel-note">隐藏入口不会删除已有笔记或图片。打开小窗时，主工作区自动让出空间；全屏方式保持不变。</p>
         </div>
     </section>

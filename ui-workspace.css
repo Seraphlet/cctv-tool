@@ -95,3 +95,18 @@ body[data-ui-category="zhengmian"] #copyTipBtn,body[data-ui-category="zhengmian"
 /* 高频操作与原有模块的可用状态同步。 */
 .ui-other-module .ui-category-switch{display:none}
 body:has(#clearAllBtn[style*="display: none"]) #uiQuickClear{display:none}
+
+
+/* 高频入口恒可见，确保从解析、拼接、时间工具能一键返回监测工作区 */
+.ui-mode-cards{margin-bottom:14px}
+.ui-quick-actions{margin-bottom:16px}
+body.ui-other-module .ui-mode-cards,
+body.ui-utility-active .ui-mode-cards{display:grid}
+body.ui-other-module .ui-mode-card,
+body.ui-utility-active .ui-mode-card{min-height:67px}
+.ui-quick-action-buttons [data-ui-shortcut].is-active{color:#1767dc;border-color:#9cc3ff;background:#ebf3ff;box-shadow:inset 0 0 0 1px #bfd7ff}
+.ui-project-notice{display:flex;flex-wrap:wrap;align-items:center;gap:7px 13px;margin:35px 2px 0;padding:13px 4px 0;border-top:1px solid #e7edf7;color:#8492a6;font-size:12px;line-height:1.65}
+.ui-project-notice .ui-notice-label{font-weight:600;color:#657c9c}
+.ui-project-notice a{color:#3272c9;text-decoration:none;border-bottom:1px solid #c4d9f8}
+.ui-project-notice a:hover{color:#1751a8;border-bottom-color:#1751a8}
+@media(max-width:650px){body.ui-other-module .ui-mode-card,body.ui-utility-active .ui-mode-card{min-height:58px}}

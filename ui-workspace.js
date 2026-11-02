@@ -26,16 +26,21 @@
         const modeButtons = Array.from(document.querySelectorAll('[data-ui-mode]'));
         const showNoteCheckbox = $('#uiShowScratchpad');
         const showImageCheckbox = $('#uiShowImagepad');
+        const showWelcomeCheckbox = $('#uiShowCategoryWelcome');
+        const showCopyCheckbox = $('#uiShowCopyFeedback');
         const utilityTitle = $('#uiUtilityTitle');
         const currentSection = $('#uiCurrentSection');
         const originalTabs = $('#mainTabs');
         const rightDock = $('.ui-right-dock');
 
-        let preferences = { showScratchpad: true, showImagepad: true };
+        let preferences = { showScratchpad: true, showImagepad: true,
+            showCategoryWelcome: true, showCopyFeedback: true };
         try {
             const saved = JSON.parse(localStorage.getItem(UI_STORAGE_KEY) || '{}');
             if (typeof saved.showScratchpad === 'boolean') preferences.showScratchpad = saved.showScratchpad;
             if (typeof saved.showImagepad === 'boolean') preferences.showImagepad = saved.showImagepad;
+            if (typeof saved.showCategoryWelcome === 'boolean') preferences.showCategoryWelcome = saved.showCategoryWelcome;
+            if (typeof saved.showCopyFeedback === 'boolean') preferences.showCopyFeedback = saved.showCopyFeedback;
         } catch (error) {
             console.debug('[UI] 无法读取显示偏好', error);
         }
@@ -190,6 +195,19 @@
             syncToolVisibility();
         });
 
+        showWelcomeCheckbox.checked = preferences.showCategoryWelcome;
+        showCopyCheckbox.checked = preferences.showCopyFeedback;
+        showWelcomeCheckbox.addEventListener('change', () => {
+            preferences.showCategoryWelcome = showWelcomeCheckbox.checked;
+            persistPreferences();
+            if (!preferences.showCategoryWelcome) $('#uiCategoryWelcome').hidden = true;
+        });
+        showCopyCheckbox.addEventListener('change', () => {
+            preferences.showCopyFeedback = showCopyCheckbox.checked;
+            persistPreferences();
+            if (!preferences.showCopyFeedback) document.querySelectorAll('.yq-copy-feedback').forEach(el => el.remove());
+        });
+
         function updateModeAndSection() {
             const current = window.App.state.currM;
             const isMain = current === 'richang' || current === 'quantao';
@@ -208,6 +226,11 @@
             } else {
                 currentSection.textContent = activeTab ? activeTab.textContent.trim() : '工作区';
             }
+            document.querySelectorAll('[data-ui-shortcut]').forEach(button => {
+                const active = !utilityOpen && button.dataset.uiShortcut === current;
+                button.classList.toggle('is-active', active);
+                button.setAttribute('aria-pressed', String(active));
+            });
             timeButton.classList.toggle('is-active', utilityOpen);
             body.classList.toggle('ui-utility-active', utilityOpen);
         }
@@ -309,7 +332,7 @@
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape' && !welcome.hidden) dismissWelcome();
         });
-        welcome.hidden = false;
+        welcome.hidden = !preferences.showCategoryWelcome;
 
         // 与用户浏览器本地时间保持一致，不影响计算器与数据处理。
         const clock = $('#uiCurrentClock');

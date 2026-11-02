@@ -187,6 +187,11 @@
 
         // 复制成功后展示分类反馈，不再弹出确认/逐项审阅。
         _showCopyFeedback(text, section) {
+            // 关闭提示只隐藏成功悬浮窗，复制逻辑不变，旧用户默认开启。
+            try {
+                const prefs = JSON.parse(localStorage.getItem('cmswrap_ui_layout_v2') || '{}');
+                if (prefs.showCopyFeedback === false) return;
+            } catch (error) { /* 存储不可用时沿用默认行为 */ }
             const keyword = this.App.state.currS === 'yuqing' ? '舆情' : '正面';
             const sectionLabel = section === 'tip' ? '提示' : section === 'add' ? '补充' : '内容';
             const notice = document.createElement('div');
