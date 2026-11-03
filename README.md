@@ -49,13 +49,13 @@ python3 -m http.server 8000
 
 打开浏览器访问 **http://localhost:8000/**。也可将代码原样部署到静态站点服务器，保持入口、样式、脚本和 modules 目录的相对路径不变。
 
-> 不建议直接通过 file:// 打开 HTML：动态加载、剪贴板以及更新检查可能受到浏览器限制。剪贴板和通知功能可能需要 HTTPS 或 localhost、权限及较新版本的浏览器。
+> 不建议直接通过 file:// 打开 HTML：动态模块加载及剪贴板功能可能受到浏览器限制。剪贴板和通知功能可能需要 HTTPS 或 localhost、权限及较新版本的浏览器。
 
 ## 目录结构
 
 ~~~text
 cctv-tool/
-├── index.html                # HTML 入口、工作台与更新检测
+├── index.html                # HTML 入口与工作台
 ├── core.js                   # 主模块注册、事件、基础业务
 ├── style.css                 # 原有样式
 ├── ui-workspace.js           # 侧栏、快捷网址、界面交互

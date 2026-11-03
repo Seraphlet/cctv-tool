@@ -137,9 +137,6 @@
         'reminder': { file: 'reminder-module.js', loaded: false, instance: null }
     };
 
-    // 版本号：自动戳。每次页面加载都生成新时间戳，确保 modules/ 下所有 JS 始终以最新版加载，无需手动 +1，也无需控制台强制刷新
-    const APP_VERSION = '' + Date.now();
-
     // ========== 自定义模板管理 ==========
     function loadCustomTemplates() {
         state.customTemplates = API.storageGet('user_templates') || [];
@@ -342,7 +339,7 @@
 
             // 动态加载脚本（用轮询代替固定延时）
             const script = document.createElement('script');
-            script.src = 'modules/' + reg.file + '?v=' + APP_VERSION;
+            script.src = 'modules/' + reg.file;
             script.onload = () => {
                 let attempts = 0;
                 const maxAttempts = 30;  // 3 秒总等待时间
@@ -467,7 +464,7 @@
     // ========== 计算器加载 ==========
     function loadCalculator() {
         const script = document.createElement('script');
-        script.src = 'modules/calc-module.js?v=' + APP_VERSION;
+        script.src = 'modules/calc-module.js';
         script.onload = () => {
             const calcMod = window.__modules && window.__modules['calc'];
             if (calcMod && typeof calcMod.init === 'function') calcMod.init(App);
@@ -478,7 +475,7 @@
     // ========== 待办提醒模块预加载（页面启动即建立数据库与轮询，使提醒常驻） ==========
     function loadReminderModule() {
         const script = document.createElement('script');
-        script.src = 'modules/reminder-module.js?v=' + APP_VERSION;
+        script.src = 'modules/reminder-module.js';
         script.onload = () => {
             const rmMod = window.__modules && window.__modules['reminder'];
             if (rmMod && typeof rmMod._start === 'function') rmMod._start(App);

@@ -677,7 +677,7 @@
                         if (!window.QuickBoardBulkImport) {
                             await new Promise((resolve, reject) => {
                                 const script = document.createElement('script');
-                                script.src = 'modules/schedule-import.js?v=' + Date.now();
+                                script.src = 'modules/schedule-import.js';
                                 script.onload = resolve;
                                 script.onerror = () => reject(new Error('班表导入组件加载失败'));
                                 document.head.appendChild(script);
